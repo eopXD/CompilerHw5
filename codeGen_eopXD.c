@@ -9,6 +9,7 @@
 
 
 FILE *write_file;
+int constant_value_counter; // for constant allocation
 
 void codegen ( AST_NODE *program ) {
 	write_file = fopen("output.S", "w");
@@ -16,6 +17,8 @@ void codegen ( AST_NODE *program ) {
 		fprintf(stderr, "open write file fail\n");
 		exit(1);
 	}
+	constant_value_counter = 1;
+
 	FOR_ALL_CHILD(program, child) {
 		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) { // global decl
 			gen_global_varDecl(child);
@@ -95,7 +98,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	AST_NODE *typeNode = funcDeclNode->child;
 	AST_NODE *idNode = typeNode->rightSibling;
-	char func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
+	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
 	AST_NODE *paramNode = idNode->rightSibling;
 	AST_NODE *blockNode = paramNode->rightSibling;
 
@@ -182,4 +185,47 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 
 // TODO: offset to be determined
 	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, OFFSET);
+}
+
+// function call
+void gen_func ( AST_NODE *funcNode ) {
+	AST_NODE *idNode = funcNode->child;
+	AST_NODE *paramListNode = idNode->rightSibling;
+
+	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
+
+	if ( strcmp(func_name, "read") == 0 ) { // int read
+		fprintf(write_file, "call _read_int\n");
+		fprintf(write_file, "mv t0, a0\n");
+		fprintf(write_file, "str t0, -4(fp)\n")
+	}
+	if ( strcmp(func_name, "fread") == 0 ) { // float read
+		fprintf(write_file, "call _read_float\n");
+		fprintf(write_file, "fmv.s ft0, fa0\n");
+		fprintf(write_file, "str ft0, -8(fp)\n");
+	}
+	if ( strcmp(func_name, "write") == 0 ) {
+		AST_NODE *paramNode = paramListNode->child;
+		char *reg = gen_expr(paramNode);
+		if ( paramNode->dataType == INT_TYPE ) {
+			fprintf(write_file, "lw t0, -4(fp)\n");
+			fprintf(write_file, "mv %s, t0\n", reg);
+			fprintf(write_file, "jal _write_int\n");
+		}
+		if ( paramNode->dataType == FLOAT_TYPE ) {
+			fprintf(write_file, "lw ft0, -8(fp)\n");
+			fprintf(write_file, "fmv.s %s, ft0\n", reg);
+			fprintf(write_file, "jal _write_float\n");
+		}
+		if ( paramNode->dataType == CONST_STRING_TYPE ) {
+			fprintf(write_file, ".data\n");
+			fprintf(write_file, "_CONSTANT_%d: \"%s\"\\000", constant_value_counter, reg);
+			fprintf(write_file, ".align 3\n");
+			fprintf(write_file, ".text\n");
+			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
+			fprintf(write_file, "mv a0, t0\n");
+			fprintf(write_file, "jal _write_str\n");
+			++constant_value_counter;
+		}
+	}
 }

@@ -45,7 +45,7 @@ void gen_varDecl(AST_NODE* varDeclDimList);
 void gen_global_varDecl ( AST_NODE* varDeclDimList );
 
 // func related
-void gen_func(AST_NODE* func); // function call
+void gen_func(AST_NODE* funcNode); // function call
 void gen_funcDecl(AST_NODE* funcDeclNode); // function declare
 
 #endif
