@@ -28,9 +28,10 @@ void gen_block(AST_NODE* blockNode);
 
 // stmt node
 void gen_stmt(AST_NODE* stmtNode); // switch the stmt node
-void gen_assignStmt(AST_NODE* assingNode);
+void gen_assignStmt(AST_NODE* assignNode);
 void gen_ifStmt(AST_NODE* ifNode);
 void gen_whileStmt(AST_NODE* whileNode);
+void gen_returnStmt(AST_NODE* returnNode);
 
 // expr node
 void gen_expr(AST_NODE* exprNode);
@@ -44,9 +45,7 @@ void gen_varDecl(AST_NODE* varDeclDimList);
 void gen_global_varDecl ( AST_NODE* varDeclDimList );
 
 // func related
-void gen_func(AST_NODE* func);
-void gen_funcDecl(AST_NODE* funcDeclNode);
-void gen_returnStmt(AST_NODE* returnNode);
-
+void gen_func(AST_NODE* func); // function call
+void gen_funcDecl(AST_NODE* funcDeclNode); // function declare
 
 #endif
