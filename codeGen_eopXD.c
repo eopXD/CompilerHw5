@@ -1,0 +1,168 @@
+#include "header.h"
+#include "codeGen.h"
+#include "symbolTable.h"
+
+#include <stdio.h>
+#include <string.h>
+
+FILE *write_file;
+
+void codegen ( AST_NODE *program ) {
+	write_file = fopen("output.S", "w");
+	if ( write_file == NULL ) {
+		fprintf(stderr, "open write file fail\n");
+		exit(1);
+	}
+	AST_NODE *child = program->child;
+	while ( child != NULL ) {
+		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) { // global decl
+			gen_global_varDecl(child);
+		} else if ( child->nodeType == DECLARATION_NODE ) { // global function (including main)
+			gen_funcDecl(child);
+		}
+		child = child->rightSibling;
+	}
+	fclose(write_file);
+}
+
+
+// static allocation
+void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
+
+	fprintf(write_file, ".data\n");
+
+	AST_NODE *declNode = varDeclDimList->child;
+	while ( declNode != NULL ) {
+		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
+			AST_NODE *typeNode = declNode->child;
+			AST_NODE *idNode = typeNode->rightSibling;
+			int ival =0;
+			float fval = 0;
+			while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
+
+				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
+				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
+				TypeDescriptor typeDesc = sym->attribute->attr.typeDescriptor;
+				
+				// global var in test data don't have initial value
+				// TODO: fetch const_val to ival/fval
+
+
+				// TODO: confirm correct directives	
+				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
+					if ( typeNode->dataType == INT_TYPE ) {
+						fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, ival);
+					} else if ( typeNode->dataType == FLOAT_TYPE ) {
+						fprintf(write_file, "_g_%s .DIRECTIVE %f\n", name, fval);
+					} else {
+						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
+
+					}
+				} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
+					int sz = 4;
+					ArrayProperties arrayProp = typeDesc->properties.arrayProperties;
+					for ( int i=0; i<arrayProp.dimenstions; ++i ) {
+						sz *= arrayProp.sizeInEachDimension[i];
+					}
+					fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, sz);
+				}
+				idNode = idNode->rightSibling;
+			}
+		}
+		declNode = declNode->rightSibling;
+	}
+}
+
+
+// stack allocatiom
+void gen_funcDecl ( AST_NODE *funcDeclNode ) {
+	AST_NODE *typeNode = funcDeclNode->child;
+	AST_NODE *idNode = typeNode->rightSibling;
+	char func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
+	AST_NODE *paramNode = idNode->rightSibling;
+	AST_NODE *blockNode = paramNode->rightSibling;
+
+	fprintf(write_file, ".text\n");
+// func prologue
+	fprintf(write_file, "_start_%s:\n", func_name);
+	fprintf(write_file, "sd ra,0(sp)\n");
+	fprintf(write_file, "sd fp,-8(sp)\n");
+	fprintf(write_file, "add fp,sp,-8\n");
+	fprintf(write_file, "add sp,sp,-16\n");
+	fprintf(write_file, "la ra,_frameSize_%s\n", func_name);
+	fprintf(write_file, "lw ra,0(ra)\n");
+	fprintf(write_file, "sub sp,sp,ra\n");
+
+
+// callee-save
+	fprintf(write_file, "sd t0,8(sp)\n");
+	fprintf(write_file, "sd t1,16(sp)\n");
+	fprintf(write_file, "sd t2,24(sp)\n");
+	fprintf(write_file, "sd t3,32(sp)\n");
+	fprintf(write_file, "sd t4,40(sp)\n");
+	fprintf(write_file, "sd t5,48(sp)\n");
+	fprintf(write_file, "sd t6,56(sp)\n");
+	fprintf(write_file, "sd s2,64(sp)\n");
+	fprintf(write_file, "sd s3,72(sp)\n");
+	fprintf(write_file, "sd s4,80(sp)\n");
+	fprintf(write_file, "sd s5,88(sp)\n");
+	fprintf(write_file, "sd s6,96(sp)\n");
+	fprintf(write_file, "sd s7,104(sp)\n");
+	fprintf(write_file, "sd s8,112(sp)\n");
+	fprintf(write_file, "sd s9,120(sp)\n");
+	fprintf(write_file, "sd s10,128(sp)\n");
+	fprintf(write_file, "sd s11,136(sp)\n");
+	fprintf(write_file, "sd fp,144(sp)\n");
+	fprintf(write_file, "fsw ft0,152(sp)\n");
+	fprintf(write_file, "fsw ft1,156(sp)\n");
+	fprintf(write_file, "fsw ft2,160(sp)\n");
+	fprintf(write_file, "fsw ft3,164(sp)\n");
+	fprintf(write_file, "fsw ft4,168(sp)\n");
+	fprintf(write_file, "fsw ft5,172(sp)\n");
+	fprintf(write_file, "fsw ft6,176(sp)\n");
+	fprintf(write_file, "fsw ft7,180(sp)\n");
+
+
+// go into blockNode
+	gen_block(blockNode);
+
+// callee-restore
+	fprintf(write_file, "_end_%s:\n", func_name);
+	fprintf(write_file, "ld t0,8(sp)\n");
+	fprintf(write_file, "ld t1,16(sp)\n");
+	fprintf(write_file, "ld t2,24(sp)\n");
+	fprintf(write_file, "ld t3,32(sp)\n");
+	fprintf(write_file, "ld t4,40(sp)\n");
+	fprintf(write_file, "ld t5,48(sp)\n");
+	fprintf(write_file, "ld t6,56(sp)\n");
+	fprintf(write_file, "ld s2,64(sp)\n");
+	fprintf(write_file, "ld s3,72(sp)\n");
+	fprintf(write_file, "ld s4,80(sp)\n");
+	fprintf(write_file, "ld s5,88(sp)\n");
+	fprintf(write_file, "ld s6,96(sp)\n");
+	fprintf(write_file, "ld s7,104(sp)\n");
+	fprintf(write_file, "ld s8,112(sp)\n");
+	fprintf(write_file, "ld s9,120(sp)\n");
+	fprintf(write_file, "ld s10,128(sp)\n");
+	fprintf(write_file, "ld s11,136(sp)\n");
+	fprintf(write_file, "ld fp,144(sp)\n");
+	fprintf(write_file, "flw ft0,152(sp)\n");
+	fprintf(write_file, "flw ft1,156(sp)\n");
+	fprintf(write_file, "flw ft2,160(sp)\n");
+	fprintf(write_file, "flw ft3,164(sp)\n");
+	fprintf(write_file, "flw ft4,168(sp)\n");
+	fprintf(write_file, "flw ft5,172(sp)\n");
+	fprintf(write_file, "flw ft6,176(sp)\n");
+	fprintf(write_file, "flw ft7,180(sp)\n");
+
+// func epilogue
+	fprintf(write_file, "ld ra,8(fp)\n");
+	fprintf(write_file, "mv sp,fp\n");
+	fprintf(write_file, "add sp,sp,8\n");
+	fprintf(write_file, "ld fp,0(fp)\n");
+	fprintf(write_file, "jr ra\n");
+	fprintf(write_file, ".data\n");
+
+// TODO: offset to be determined
+	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, OFFSET);
+}
