@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define FOR_ALL_CHILD(node, child) for(AST_NODE* child=node->child; node!=NULL; node=node->rightSibling)
+
+
 FILE *write_file;
 
 void codegen ( AST_NODE *program ) {
@@ -13,33 +16,47 @@ void codegen ( AST_NODE *program ) {
 		fprintf(stderr, "open write file fail\n");
 		exit(1);
 	}
-	AST_NODE *child = program->child;
-	while ( child != NULL ) {
+	FOR_ALL_CHILD(program, child) {
 		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) { // global decl
 			gen_global_varDecl(child);
 		} else if ( child->nodeType == DECLARATION_NODE ) { // global function (including main)
 			gen_funcDecl(child);
 		}
-		child = child->rightSibling;
 	}
 	fclose(write_file);
 }
 
+// block generation
+void gen_block ( AST_NODE *blockNode ) {
+	int frameSize = 0;
+	FOR_ALL_CHILD(blockNode, child) {
+		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) {
+			FOR_ALL_CHILD(child, declNode) {			
+				if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
+					gen_varDecl(declNode);
+				}
+			}
+		} else if ( child->nodeType == STMT_LIST_NODE ) {
+			AST_NODE *stmtNode = child->child;
+			FOR_ALL_CHILD(child, stmtNode) {
+				gen_stmt(stmtNode);
+			}
+		}
+
+	}
+}
 
 // static allocation
 void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
-
 	fprintf(write_file, ".data\n");
-
 	AST_NODE *declNode = varDeclDimList->child;
-	while ( declNode != NULL ) {
+	FOR_ALL_CHILD(varDeclDimList, declNode) {
 		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
 			AST_NODE *typeNode = declNode->child;
 			AST_NODE *idNode = typeNode->rightSibling;
 			int ival =0;
 			float fval = 0;
 			while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
-
 				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
 				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
 				TypeDescriptor typeDesc = sym->attribute->attr.typeDescriptor;
@@ -69,7 +86,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 				idNode = idNode->rightSibling;
 			}
 		}
-		declNode = declNode->rightSibling;
+
 	}
 }
 
