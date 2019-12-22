@@ -40,7 +40,7 @@ void gen_write(AST_NODE* writeNode);
 void gen_read(AST_NODE* readNode);
 
 // decl node
-void gen_Decl(AST_NODE* DeclNode); // switch the decl node
+void gen_decl(AST_NODE* DeclNode); // switch the decl node
 void gen_varDecl(AST_NODE* varDeclDimList);
 void gen_global_varDecl ( AST_NODE* varDeclDimList );
 
