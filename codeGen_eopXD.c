@@ -198,13 +198,11 @@ void gen_func ( AST_NODE *funcNode ) {
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
 		fprintf(write_file, "str t0, -4(fp)\n")
-	}
-	if ( strcmp(func_name, "fread") == 0 ) { // float read
+	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 		fprintf(write_file, "str ft0, -8(fp)\n");
-	}
-	if ( strcmp(func_name, "write") == 0 ) {
+	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
 		AST_NODE *paramNode = paramListNode->child;
 		char *reg = gen_expr(paramNode);
 		if ( paramNode->dataType == INT_TYPE ) {
@@ -227,5 +225,7 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_str\n");
 			++constant_value_counter;
 		}
+	} else { // normal function
+		fprintf(write_file, "jal jal _start_%s\n", func_name);
 	}
 }
