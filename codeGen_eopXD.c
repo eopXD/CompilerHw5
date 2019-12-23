@@ -94,18 +94,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 	}
 }
 
-
-// stack allocatiom
-void gen_funcDecl ( AST_NODE *funcDeclNode ) {
-	AST_NODE *typeNode = funcDeclNode->child;
-	AST_NODE *idNode = typeNode->rightSibling;
-	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
-	AST_NODE *paramNode = idNode->rightSibling;
-	AST_NODE *blockNode = paramNode->rightSibling;
-
-	fprintf(write_file, ".text\n");
-// func prologue
-	fprintf(write_file, "_start_%s:\n", func_name);
+void gen_prologue ( char *func_name ) {
 	fprintf(write_file, "sd ra,0(sp)\n");
 	fprintf(write_file, "sd fp,-8(sp)\n");
 	fprintf(write_file, "add fp,sp,-8\n");
@@ -113,9 +102,8 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	fprintf(write_file, "la ra,_frameSize_%s\n", func_name);
 	fprintf(write_file, "lw ra,0(ra)\n");
 	fprintf(write_file, "sub sp,sp,ra\n");
-
-
-// callee-save
+}
+void callee_save () {
 	fprintf(write_file, "sd t0,8(sp)\n");
 	fprintf(write_file, "sd t1,16(sp)\n");
 	fprintf(write_file, "sd t2,24(sp)\n");
@@ -142,13 +130,9 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	fprintf(write_file, "fsw ft5,172(sp)\n");
 	fprintf(write_file, "fsw ft6,176(sp)\n");
 	fprintf(write_file, "fsw ft7,180(sp)\n");
-
-
-// go into blockNode
-	gen_block(blockNode);
-
+}
 // callee-restore
-	fprintf(write_file, "_end_%s:\n", func_name);
+void callee_restore () {
 	fprintf(write_file, "ld t0,8(sp)\n");
 	fprintf(write_file, "ld t1,16(sp)\n");
 	fprintf(write_file, "ld t2,24(sp)\n");
@@ -175,17 +159,40 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	fprintf(write_file, "flw ft5,172(sp)\n");
 	fprintf(write_file, "flw ft6,176(sp)\n");
 	fprintf(write_file, "flw ft7,180(sp)\n");
-
-// func epilogue
+}
+void gen_epilogue ( char *func_name ) {
 	fprintf(write_file, "ld ra,8(fp)\n");
 	fprintf(write_file, "mv sp,fp\n");
 	fprintf(write_file, "add sp,sp,8\n");
 	fprintf(write_file, "ld fp,0(fp)\n");
 	fprintf(write_file, "jr ra\n");
 	fprintf(write_file, ".data\n");
-
 // TODO: offset to be determined
 	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, OFFSET);
+}
+
+// stack allocatiom
+void gen_funcDecl ( AST_NODE *funcDeclNode ) {
+	AST_NODE *typeNode = funcDeclNode->child;
+	AST_NODE *idNode = typeNode->rightSibling;
+	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
+	AST_NODE *paramNode = idNode->rightSibling;
+	AST_NODE *blockNode = paramNode->rightSibling;
+
+	fprintf(write_file, ".text\n");
+	
+// start of function
+	fprintf(write_file, "_start_%s:\n", func_name);
+	gen_prologue(func_name);
+	callee_save();
+
+// go into blockNode
+	gen_block(blockNode);
+
+// end of function
+	fprintf(write_file, "_end_%s:\n", func_name);
+	callee_restore();
+	gen_epilogue(func_name);	
 }
 
 // function call

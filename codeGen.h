@@ -8,13 +8,8 @@
 void codegen ( AST_NODE *program );
 
 // reg related
-void gen_prologue(char* name); // for function save register
-void gen_epilogue(char* name); // for function end save register 
 void get_reg();  // get the free register
 void free_reg(); // free the unused reg
-
-// help me sort this !?
-void gen_head(char *name); // for declare the function name
 
 // offset analysis
 void get_offset(); // get the offset of the local variable
@@ -45,6 +40,10 @@ void gen_varDecl(AST_NODE* varDeclDimList);
 void gen_global_varDecl ( AST_NODE* varDeclDimList );
 
 // func related
+void gen_prologue ( char *func_name );
+void gen_epilogue ( char *func_name );
+void callee_save ();
+void callee_restore ();
 void gen_func(AST_NODE* funcNode); // function call
 void gen_funcDecl(AST_NODE* funcDeclNode); // function declare
 
