@@ -11,6 +11,7 @@
 
 FILE *write_file;
 int constant_value_counter; // for constant allocation
+char *current_function; // current function name
 
 void codegen ( AST_NODE *program ) {
 	write_file = fopen("output.S", "w");
@@ -181,8 +182,8 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	AST_NODE *paramNode = idNode->rightSibling;
 	AST_NODE *blockNode = paramNode->rightSibling;
 
+	current_function = func_name;
 	fprintf(write_file, ".text\n");
-	
 // start of function
 	fprintf(write_file, "_start_%s:\n", func_name);
 	gen_prologue(func_name);
