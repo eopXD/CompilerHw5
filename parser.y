@@ -766,6 +766,9 @@ char *argv[];
 
      semanticAnalysis(prog);
 
+     gen_offset(prog);
+     codegen(prog);
+
      symbolTableEnd();
      if (!g_anyErrorOccur) {
         printf("Parsing completed. No errors found.\n");
