@@ -3,6 +3,7 @@
 #include "symbolTable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define FOR_ALL_CHILD(node, childnode) for(AST_NODE* childnode=node->child; node!=NULL; node=node->rightSibling)
@@ -62,7 +63,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 			while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
 				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
 				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
-				TypeDescriptor typeDesc = sym->attribute->attr.typeDescriptor;
+				TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
 				
 				// global var in test data don't have initial value
 				// TODO: fetch const_val to ival/fval
@@ -81,7 +82,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 				} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
 					int sz = 4;
 					ArrayProperties arrayProp = typeDesc->properties.arrayProperties;
-					for ( int i=0; i<arrayProp.dimenstions; ++i ) {
+					for ( int i=0; i<arrayProp.dimension; ++i ) {
 						sz *= arrayProp.sizeInEachDimension[i];
 					}
 					fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, sz);
@@ -197,7 +198,7 @@ void gen_func ( AST_NODE *funcNode ) {
 	if ( strcmp(func_name, "read") == 0 ) { // int read
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
-		fprintf(write_file, "str t0, -4(fp)\n")
+		fprintf(write_file, "str t0, -4(fp)\n");
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
