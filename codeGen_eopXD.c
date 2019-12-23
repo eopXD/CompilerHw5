@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FOR_ALL_CHILD(node, child) for(AST_NODE* child=node->child; node!=NULL; node=node->rightSibling)
+#define FOR_ALL_CHILD(node, childnode) for(AST_NODE* childnode=node->child; node!=NULL; node=node->rightSibling)
 
 
 FILE *write_file;
