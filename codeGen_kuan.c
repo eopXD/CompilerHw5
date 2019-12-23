@@ -19,8 +19,38 @@ SymbolTableEntry* get_entry(AST_NODE* node)
 
 void gen_stmt(AST_NODE* stmtNode)
 {
-
+    if(stmtNode->nodeType == NUL_NODE){
+        return ;
+    }else if(stmtNode->nodeType == BLOCK_NODE){
+        gen_block(stmtNode);
+    }
+    else{
+        switch(stmtNode->semantic_value.stmtSemanticValue.kind){
+            case WHILE_STMT:
+                gen_whileStmt(stmtNode);
+                break;
+            case FOR_STMT:
+                printf("QQQQ\n NO FOR\n");
+                break;
+            case ASSIGN_STMT:
+                gen_assignStmt(stmtNode);
+                break;
+            case RETURN_STMT:
+                gen_returnStmt(stmtNode); 
+                break;
+            case FUNCTION_CALL_STMT:
+                gen_func(stmtNode);
+                break;
+            case IF_STMT:
+                gen_ifStmt(stmtNode);
+                break;
+            default:
+                printf("QQQQQ\n ERROR\n");
+                break;
+        }
+    }
 }
+
 
 void gen_ifStmt(AST_NODE* ifNode)
 {
@@ -32,15 +62,15 @@ void gen_ifStmt(AST_NODE* ifNode)
     AST_NODE* elseBodyNode = ifBodyNode->rightSibling;
     if(elseBodyNode == NULL){
         fprintf(write_file, "beqz X%d, _Lexit%d\n", entry->place, local_label_number);
-        gen_block(ifBodyNode);
+        gen_stmt(ifBodyNode);
         fprintf(write_file, "_Lexit%d\n", local_label_number);
 
     }else{
         fprintf(write_file, "beqz X%d, _Lelse%d  \n", entry->place, local_label_number);
-        gen_block(ifBodyNode);
+        gen_stmt(ifBodyNode);
         fprintf(write_file, "j _Lexit%d\n", local_label_number);
         fprintf(write_file, "_Lelse%d:\n", local_label_number);
-        gen_block(elseBodyNode);
+        gen_stmt(elseBodyNode);
         fprintf(write_file, " _Lexit%d\n", local_label_number);
     }
 }
@@ -53,7 +83,7 @@ void gen_whileStmt(AST_NODE* whileNode)
     gen_expr(boolExpression);
     SymbolTableEntry* entry = get_entry(boolExpression);
     fprintf(write_file, "beqz X%d, _Lexit%d\n", entry->place, local_label_number); 
-    gen_block(boolExpression->rightSibling);
+    gen_stmt(boolExpression->rightSibling);
     fprintf(write_file, "j _Test%d\n", local_label_number);
     fprintf(write_file, "_Lexit%d\n", local_label_number);
 }
