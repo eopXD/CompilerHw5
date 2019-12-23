@@ -5,6 +5,19 @@
 
 #include "header.h"
 
+// for the reg tracking 
+typedef enum regAttributeKind
+{
+   TEMPORARY_KIND,
+   VARIABLE_KIND, 
+   OTHER_KIND
+} regAttributeKind;
+
+typedef struct RegTable{
+    regAttributeKind kind;
+    char* varName;
+    int status;
+} RegTable;
 // mama node
 void codegen ( AST_NODE *program );
 
@@ -34,7 +47,9 @@ void gen_whileStmt(AST_NODE* whileNode);
 void gen_returnStmt(AST_NODE* returnNode);
 
 // expr node
-void gen_expr(AST_NODE* exprNode);
+void gen_constValue(AST_NODE* constValue);
+void gen_variableRValue(AST_NODE* variable);
+int gen_expr(AST_NODE* exprNode); // return the reg of the expr
 
 void gen_write(AST_NODE* writeNode);
 void gen_read(AST_NODE* readNode);
