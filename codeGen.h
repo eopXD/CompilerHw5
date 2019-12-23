@@ -12,7 +12,7 @@ void codegen ( AST_NODE *program );
 SymbolTableEntry* get_entry(AST_NODE* node);
 
 // reg related
-void get_reg();  // get the free register
+void get_reg( AST_NODE* node);  // get the free register
 void free_reg(); // free the unused reg
 
 // offset analysis
