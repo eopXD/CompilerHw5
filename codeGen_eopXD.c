@@ -50,6 +50,7 @@ void gen_block ( AST_NODE *blockNode ) {
 	}
 }
 
+/* varaible declaration */
 // static allocation
 void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 	fprintf(write_file, ".data\n");
@@ -82,7 +83,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 				} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
 					int sz = 4;
 					ArrayProperties arrayProp = typeDesc->properties.arrayProperties;
-					for ( int i=0; i<arrayProp.dimenstions; ++i ) {
+					for ( int i=0; i<arrayProp.dimension; ++i ) {
 						sz *= arrayProp.sizeInEachDimension[i];
 					}
 					fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, sz);
@@ -94,6 +95,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 	}
 }
 
+/* function related */ 
 void gen_prologue ( char *func_name ) {
 	fprintf(write_file, "sd ra,0(sp)\n");
 	fprintf(write_file, "sd fp,-8(sp)\n");
@@ -236,4 +238,70 @@ void gen_func ( AST_NODE *funcNode ) {
 	} else { // normal function
 		fprintf(write_file, "jal jal _start_%s\n", func_name);
 	}
+}
+
+
+/* offset analysis */
+
+void gen_offset ( AST_NODE *program ) {
+	gen_offset(program, 0);
+}
+int gen_offset ( AST_NODE *node, int offset ) {
+	if ( node->nodeType==DECLARATION_NODE && node->semantic_value.declSemanticValue.kind = FUNCTION_DECL ) {
+		offset = 0;
+	} else if ( node->nodeType == BLOCK_NODE ) {
+		offset = block_offset(node, offset);
+	} else if ( node->nodeType == PARAM_LIST_NODE ) {
+		param_offset(node, offset);
+		return (offset);
+	}
+	FOR_ALL_CHILD(node, child) {
+		int x = gen_offset(child, offset);
+		if ( x < offset ) {
+			offset = x;
+		}
+	}
+	if ( node->nodeType==DECLARATION_NODE && node->semantic_value.declSemanticValue.kind = FUNCTION_DECL ) {
+		AST_NODE *idNode = node->child->rightSibling;
+		idNode->semantic_value.identifierSemanticValue.symbolTableEntry = 
+		 retrieveSymbol(idNode->semantic_value.identifierSemanticValue.identifierName);
+		idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
+	}
+	return (offset);
+}
+void param_offset ( AST_NODE *paramNode, int offset ) {
+	offset += 16;
+	FOR_ALL_CHILD(param_node, child) {
+		child->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
+		offset += 4;
+	}
+}
+int block_offset ( AST_NODE *blockNode, int offset ) {
+	if ( blockNode == NULL ) {
+		return (offset);
+	}
+	if ( blockNode->child->nodeType != VARIABLE_DECL_LIST_NODE ) {
+		return (offset);
+	}
+
+	AST_NODE *declList = blockNode->child;
+	FOR_ALL_CHILD(declList, declNode) {
+		AST_NODE *idNode = declNode->child->rightSibling;
+		while ( idNode != NULL ) {
+			SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
+			if ( sym->attribute->attr.typeDescriptor == ARRAY_TYPE_DESCRIPTOR ) {
+				ArrayProperties arrayProp = sym->attribute.typeDescriptor->properties.arrayProperties;
+				int sz = 4;
+				for ( int i=0; i<properties.dimension; ++i ) {
+					sz *= properties.sizeInEachDimension[i];
+				}
+				offset -= sz;
+			} else {
+				offset -= 4;
+			}
+			sym->offset = offset;
+			idNode = idNode->rightSibling;
+		}
+	}
+	return (offset);
 }

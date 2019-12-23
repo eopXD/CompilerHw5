@@ -12,9 +12,10 @@ void get_reg();  // get the free register
 void free_reg(); // free the unused reg
 
 // offset analysis
-void get_offset(); // get the offset of the local variable
-void param_offset ( AST_NODE *param_node, int offset ); // parameter
-void block_offset ( AST_NODE *blockNode, int offset ); // block
+void gen_offset ( AST_NODE *program ); // mama call
+int gen_offset ( AST_NODE *node, int offset ); // general node
+int block_offset ( AST_NODE *blockNode, int offset ); // block
+void param_offset ( AST_NODE *paramNode, int offset ); // parameter
 
 
 // more general node
