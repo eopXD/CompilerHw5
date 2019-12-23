@@ -3,9 +3,13 @@
 
 #define REGISTER_NUM 32
 
+#include "header.h"
 
 // mama node
 void codegen ( AST_NODE *program );
+
+// some useful function 
+SymbolTableEntry* get_entry(AST_NODE* node);
 
 // reg related
 void get_reg();  // get the free register
