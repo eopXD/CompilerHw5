@@ -10,6 +10,7 @@
 int label_no = 0; // for nested structure
 FILE* write_file;
 int constant_value_counter = 0; // for constant allocation
+char* current_function;
 
 SymbolTableEntry* get_entry(AST_NODE* node)
 {
@@ -51,6 +52,28 @@ void gen_stmt(AST_NODE* stmtNode)
     }
 }
 
+void gen_assignStmt(AST_NODE* assignNode)
+{
+    AST_NODE* leftOp = assignNode->child;
+    AST_NODE* rightOp = leftOp->rightSibling;
+
+    gen_expr(rightOp);
+    SymbolTableEntry* entry = get_entry(rightOp);
+    SymbolTableEntry* entry2 = get_entry(leftOp);
+    if(entry2->place == -1){
+        get_reg(leftOp);
+    }
+    fprintf(write_file, "mv t%d, t%d\n", entry2->place, entry->place);
+    // TODO live tracking 
+}
+
+void gen_returnStmt(AST_NODE* returnNode)
+{
+    gen_expr(returnNode->child);
+    SymbolTableEntry* entry = get_entry(returnNode->child);
+    fprintf(write_file, "mv a0, t%d\n", entry->place);
+    fprintf(write_file, "j _end_%s\n", current_function);
+}
 
 void gen_ifStmt(AST_NODE* ifNode)
 {
@@ -109,7 +132,6 @@ void gen_block ( AST_NODE *blockNode )
                   gen_stmt(stmtNode);
               }
           }
-
       }
 }
 
