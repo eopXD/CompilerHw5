@@ -25,7 +25,7 @@ void codegen ( AST_NODE *program );
 SymbolTableEntry* get_entry(AST_NODE* node);
 
 // reg related
-void get_reg( AST_NODE* node);  // get the free register
+char* get_reg( AST_NODE* node);  // get the free register
 void free_reg(); // free the unused reg
 
 // offset analysis
@@ -49,7 +49,7 @@ void gen_returnStmt(AST_NODE* returnNode);
 // expr node
 void gen_constValue(AST_NODE* constValue);
 void gen_variableRValue(AST_NODE* variable);
-int gen_expr(AST_NODE* exprNode); // return the reg of the expr
+char* gen_expr(AST_NODE* exprNode); // return the reg of the expr
 
 void gen_write(AST_NODE* writeNode);
 void gen_read(AST_NODE* readNode);
