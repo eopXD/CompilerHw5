@@ -319,8 +319,7 @@ void gen_epilogue ( char *func_name ) {
 	fprintf(write_file, "ld fp,0(fp)\n");
 	fprintf(write_file, "jr ra\n");
 	fprintf(write_file, ".data\n");
-// TODO: offset to be determined
-	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, OFFSET);
+	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, 100-retrieveSymbol(func_name)->offset);
 }
 
 // stack allocatiom
@@ -386,14 +385,12 @@ void gen_func ( AST_NODE *funcNode ) {
 			++constant_value_counter;
 		}
 	} else { // normal function
-		fprintf(write_file, "jal jal _start_%s\n", func_name, CONSTANT - idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+		fprintf(write_file, "jal jal _start_%s\n", func_name);
 	}
 }
 
-
 /* offset analysis */
-
-void gen_offset ( AST_NODE *program ) {
+void offsetgen ( AST_NODE *program ) {
 	gen_offset(program, 0);
 }
 int gen_offset ( AST_NODE *node, int offset ) {
