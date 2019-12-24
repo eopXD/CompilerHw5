@@ -17,6 +17,37 @@ int constant_value_counter = 0; // for constant allocation
 char *current_function; // current function name
 RegTable regTable[REGISTER_NUM];
 
+char regName[64][8] = {
+    "zero", "ra", "sp", "gp", "tp",
+    "t0", "t1", "t2", "fp", "s1",
+    "a0", "a1", "a2", "a3", "a4",
+    "a5", "a6", "a7", "s2", "s3",
+    "s4", "s5", "s6", "s7", "s8",
+    "s9", "s10", "s11", "t3", "t4",
+    "t5", "t6", "ft0", "ft1", "ft2",
+    "ft3", "ft4", "ft5", "ft6", "ft7"
+    "fs0", "fs1", "fa0", "fa1", "fa2",
+    "fa3", "fa4", "fa5", "fa6", "fa7",
+    "fs2", "fs3", "fs4", "fs5", "fs6",
+    "fs7", "fs8", "fs9", "fs10", "fs11",
+    "ft8", "ft9", "ft10", "ft11"
+};
+
+int useRegList[64] = { 
+    1, 1, 1, 1, 1,
+    0, 0, 0, 1, 0,
+    1, 1, 1, 1, 1,  
+    1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0
+};
 
 SymbolTableEntry* get_entry(AST_NODE* node)
 {
@@ -29,7 +60,7 @@ char* get_name(AST_NODE* node)
 
 int in_reg(AST_NODE* node)
 {
-    if(node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
+    if(node->nodeType == IDENTIFIER_NODE && node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
       SymbolTableEntry* entry = get_entry(node);
       if(entry->nestingLevel == 0){
           return -1;
@@ -71,10 +102,10 @@ void initial_reg()
 {
     for(int i = 0; i < REGISTER_NUM; i++){
       if(useRegList[i]){
-          regTable[useRegList[i]].status = DIRTY;
-          regTable[useRegList[i]].kind = OTHER_KIND;
+          regTable[i].status = DIRTY;
+          regTable[i].kind = OTHER_KIND;
       }else{
-          regTable[useRegList[i]].status = FREE;
+          regTable[i].status = FREE;
       }
     }
 }
@@ -99,7 +130,7 @@ int get_reg(AST_NODE* node)
           }
       }
       for(int i = 0; i < REGISTER_NUM; i++){
-          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND){
+          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
               free_reg(i);
               store_reg(node, i);
               return i;
@@ -319,9 +350,12 @@ int gen_expr ( AST_NODE *exprNode ) {
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs = in_reg(exprNode)) < 0 ) {
 				rs = get_reg(exprNode);
-				memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+				//memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+				strncpy(str, exprNode->semantic_value.const1->const_u.sc+1, strlen(exprNode->semantic_value.const1->const_u.sc)-2);
+                str[strlen(exprNode->semantic_value.const1->const_u.sc)-1] = '\0';
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
+                //printf("%s\n", str);
 				fprintf(write_file, ".ascii \"%s\\000\"\n", str);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
@@ -599,6 +633,7 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 
 // function call
 void gen_func ( AST_NODE *funcNode ) {
+    initial_reg();
 	AST_NODE *idNode = funcNode->child;
 	AST_NODE *paramListNode = idNode->rightSibling;
 
@@ -627,7 +662,7 @@ void gen_func ( AST_NODE *funcNode ) {
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
 			fprintf(write_file, ".data\n");
-			fprintf(write_file, "_CONSTANT_%d: \"%s\"\\000", constant_value_counter, regName[reg]);
+			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, regName[reg]);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
