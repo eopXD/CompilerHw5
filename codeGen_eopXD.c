@@ -30,6 +30,34 @@ void codegen ( AST_NODE *program ) {
 	fclose(write_file);
 }
 
+int gen_array_addr ( AST_NODE *idNode ) {
+	ArrayProperties arrayProp = 
+	 idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->properties.arrayProperties;
+	AST_NODE *dimNode = idNode->child;
+	int rs = get_reg(), rt = get_reg(); // result / offset
+	int rd;
+	fprintf(write_file, "li %s, 0\n", regName[rt]);
+	for ( int i=0; i<arrayProp.dimension; ++i ) {
+		rd = gen_expr(dimNode); // tmp
+		int sz = (i == arrayProp.dimNode-1) ? 4 : arrayProp.sizeInEachDimension[i];
+		fprintf(write_file, "add, %s, %s, %s", regName[rt], regName[rt], regName[rd]);
+		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
+		fprintf(write_file, "mul %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
+		dimNode = dimNode->rightSibling;
+		free_reg(rd);
+	}
+	
+	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry.nestingLevel == 0 ) { // global 	
+		rd = get_reg();
+		fprintf(write_file, "la %s, _g_%s\n", regName[rd], idNode->semantic_value.identifierSemanticValue.identifierName);
+		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
+		free_reg(rd);
+	} else { // local
+		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry.offset);
+	}
+	free_reg(rt);
+	return (rs);
+}
 // expression returns register for use
 // results put into 'rs'
 int gen_expr ( AST_NODE *exprNode ) {
@@ -438,7 +466,7 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 			if ( sym->attribute->attr.typeDescriptor == ARRAY_TYPE_DESCRIPTOR ) {
 				ArrayProperties arrayProp = sym->attribute.typeDescriptor->properties.arrayProperties;
 				int sz = 4;
-				for ( int i=0; i<properties.dimension; ++i ) {
+				for ( int i=0; i<arrayProp.dimension; ++i ) {
 					sz *= properties.sizeInEachDimension[i];
 				}
 				offset -= sz;
