@@ -73,7 +73,7 @@ char* get_float_reg ();
 void free_reg(int reg); // free the unused reg
 
 // offset analysis
-void gen_offset ( AST_NODE *program ); // mama call
+void offsetgen ( AST_NODE *program ); // mama call
 int gen_offset ( AST_NODE *node, int offset ); // general node
 int block_offset ( AST_NODE *blockNode, int offset ); // block
 void param_offset ( AST_NODE *paramNode, int offset ); // parameter

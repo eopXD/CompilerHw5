@@ -766,7 +766,7 @@ char *argv[];
 
      semanticAnalysis(prog);
 
-     gen_offset(prog);
+     offsetgen(prog);
      codegen(prog);
 
      symbolTableEnd();
