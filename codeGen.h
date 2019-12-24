@@ -92,6 +92,7 @@ void gen_returnStmt(AST_NODE* returnNode);
 // expr node
 void gen_constValue(AST_NODE* constValue);
 void gen_variableRValue(AST_NODE* variable);
+int gen_array_addr ( AST_NODE *exprNode );
 int gen_expr(AST_NODE* exprNode); // return the reg of the expr
 
 void gen_write(AST_NODE* writeNode);
