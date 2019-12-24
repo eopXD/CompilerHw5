@@ -350,9 +350,12 @@ int gen_expr ( AST_NODE *exprNode ) {
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs = in_reg(exprNode)) < 0 ) {
 				rs = get_reg(exprNode);
-				memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+				//memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+				strncpy(str, exprNode->semantic_value.const1->const_u.sc+1, strlen(exprNode->semantic_value.const1->const_u.sc)-2);
+                str[strlen(exprNode->semantic_value.const1->const_u.sc)-1] = '\0';
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
+                //printf("%s\n", str);
 				fprintf(write_file, ".ascii \"%s\\000\"\n", str);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
@@ -658,7 +661,7 @@ void gen_func ( AST_NODE *funcNode ) {
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
 			fprintf(write_file, ".data\n");
-			fprintf(write_file, "_CONSTANT_%d: \"%s\"\\000", constant_value_counter, regName[reg]);
+			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, regName[reg]);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
