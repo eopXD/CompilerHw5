@@ -1,7 +1,7 @@
 #ifndef __CODE_GEN_H__ 
 #define __CODE_GEN_H__ 
 
-#define REGISTER_NUM 32
+#define REGISTER_NUM 64
 
 #include "header.h"
 #include "symbolTable.h"

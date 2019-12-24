@@ -102,10 +102,10 @@ void initial_reg()
 {
     for(int i = 0; i < REGISTER_NUM; i++){
       if(useRegList[i]){
-          regTable[useRegList[i]].status = DIRTY;
-          regTable[useRegList[i]].kind = OTHER_KIND;
+          regTable[i].status = DIRTY;
+          regTable[i].kind = OTHER_KIND;
       }else{
-          regTable[useRegList[i]].status = FREE;
+          regTable[i].status = FREE;
       }
     }
 }
@@ -130,7 +130,7 @@ int get_reg(AST_NODE* node)
           }
       }
       for(int i = 0; i < REGISTER_NUM; i++){
-          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND){
+          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
               free_reg(i);
               store_reg(node, i);
               return i;
@@ -633,6 +633,7 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 
 // function call
 void gen_func ( AST_NODE *funcNode ) {
+    initial_reg();
 	AST_NODE *idNode = funcNode->child;
 	AST_NODE *paramListNode = idNode->rightSibling;
 
