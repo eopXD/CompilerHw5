@@ -8,7 +8,6 @@
 
 #define FOR_ALL_CHILD(node, childnode) for(AST_NODE* childnode=node->child; childnode!=NULL; childnode=childnode->rightSibling)
 
-
 FILE *write_file;
 int constant_value_counter; // for constant allocation
 char *current_function; // current function name
@@ -16,7 +15,7 @@ char *current_function; // current function name
 void codegen ( AST_NODE *program ) {
 	write_file = fopen("output.S", "w");
 	if ( write_file == NULL ) {
-		fprintf(stderr, "open write file fail\n");
+		fprintf(stderr, "[codegen] open write file fail\n");
 		exit(1);
 	}
 	constant_value_counter = 1;
@@ -29,6 +28,123 @@ void codegen ( AST_NODE *program ) {
 		}
 	}
 	fclose(write_file);
+}
+
+// expression returns register for use
+int gen_expr ( AST_NODE *exprNode ) {
+
+// results put into 'rs'
+	int rs, rt;
+	char *float_or_not;
+
+	int ival;
+	float fval;
+
+	union ufloat uf;
+	char str[256] = {};
+
+	if ( exprNode->nodeType == CONST_VALUE_NODE ) { // constant value
+		if ( exprNode->semantic_value.const1->const_type == INTEGERC ) { // const integer
+			if ( (rs=in_reg(exprNode)) < 0 ) {
+				rs = get_reg();
+				fprintf(write_file, ".data\n");
+				fprintf(write_file, "_CONSTANT_%d: .word %d\n", constant_value_counter, exprNode->semantic_value.const1->const_u.intval);
+				fprintf(write_file, ".align 3\n");
+				fprintf(write_file, ".text\n");
+				fprintf(write_file, "lw %s, _CONSTANT_%d\n", regName[rs], constant_value_counter);
+				++constant_value_counter;
+			}
+		} else if ( exprNode->semantic_value.const1->const_type == FLOATC ) { // const float
+			if ( (rs=in_reg(exprNode)) < 0 ) {
+				uf = exprNode->semantic_value.const1->const_u.fval;
+				rs = get_float_reg();
+				rt = get_addr_reg();
+				fprintf(write_file, ".data\n");
+				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
+				fprintf(write_file, ".word %u\n", uf.u);
+				fprintf(write_file, ".align 3\n");
+				fprintf(write_file, ".text\n");
+				fprintf(write_file, "lui %s, \%hi(_CONSTANT_%d)\n", regName[rt], constant_value_counter);
+				fpritnf(write_file, "flw %s, \%lo(_CONSTANT_%d)(%s)\n", regName[rs], constant_value_counter, rt);
+				++constant_value_counter;
+			}
+			free_reg(rt);
+		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
+			if ( (rs=in_reg(exprNode)) < 0 ) {
+				rs = get_addr_reg();
+				memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+				fprintf(write_file, ".data\n");
+				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
+				fprintf(write_file, ".ascii \"%s\\000\"\n", str);
+				fprintf(write_file, ".align 3\n");
+				fprintf(write_file, ".text\n");
+				fprintf(write_file, "la %s, _CONSTANT_%d\n", regName[rs], constant_value_counter);
+				++constant_value_counter;
+			}
+		} else {
+			fprintf(stderr, "[gen_expr] unknown const type\n");
+			exit(1);
+		}
+	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
+		if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == INT_TYPE ) {
+			rs = get_int_reg();
+			fprintf(write, "li %s, %d\n", rs, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
+		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == BINARY_OPERATION ) {
+			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
+			rs = gen_expr(exprNode->child);
+			rt = gen_expr(exprNode->child->rightSibling);
+
+			switch ( exprNode->semantic_value.exprSemanticValue.op.binaryOp ) {
+				case BINARY_OP_ADD: 
+					fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+				case BINARY_OP_SUB: 
+					fprintf(write_filem "%ssub %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+				case BINARY_OP_MUL: 
+					fprintf(write_filem "%smul %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+				case BINARY_OP_DIV: 
+					fprintf(write_filem "%sdiv %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+				case BINARY_OP_AND: 
+					fprintf(write_filem "%sand %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+				case BINARY_OP_OR: 
+					fprintf(write_filem "%sor %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+
+				case BINARY_OP_EQ: case BINARY_OP_GE: case BINARY_OP_LE:
+				case BINARY_OP_NE: case BINARY_OP_GT: case BINARY_OP_LT:
+					/* TODO: comparison operations */
+					break;
+				default: break;
+			}
+			free_reg(rt);
+		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == UNARY_TYPE ) {
+			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
+			rs = gen_expr(exprNode->child);
+			switch ( exprNode->semantic_value.exprSemanticValue.op.unaryOp ) {
+				case UNARY_OP_POSITIVE: 
+					/* don't need to do anything */
+					break;
+				case UNARY_OP_NEGATIVE: 
+					fprintf(fp, "%sneg %s, %s\n", type, exprName[rs], exprName[rs]); break;
+				case UNARY_OP_LOGICAL_NEGATION:
+					/* TODO: logical negation */
+					break;
+				default: break;
+			}
+
+		}
+	} else if ( exprNode->nodeType == STMT_NODE ) { // solve statement
+		gen_func(exprNode);
+		if ( exprNode->dataType == INT_TYPE ) {
+			rs = "t0";
+		} else if ( exprNode->dataType == FLOAT_TYPE ) {
+			rs = "ft0";
+		}
+	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
+	} else {
+		fprintf(stderr, "[gen_expr] unknown node type\n");
+		exit(1);
+	}
+
+	return (rs);
 }
 
 // block generation
@@ -215,20 +331,20 @@ void gen_func ( AST_NODE *funcNode ) {
 		fprintf(write_file, "str ft0, -8(fp)\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
 		AST_NODE *paramNode = paramListNode->child;
-		char *reg = gen_expr(paramNode);
+		int reg = gen_expr(paramNode);
 		if ( paramNode->dataType == INT_TYPE ) {
 			fprintf(write_file, "lw t0, -4(fp)\n");
-			fprintf(write_file, "mv %s, t0\n", reg);
+			fprintf(write_file, "mv %s, t0\n", regName[reg]);
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
 			fprintf(write_file, "lw ft0, -8(fp)\n");
-			fprintf(write_file, "fmv.s %s, ft0\n", reg);
+			fprintf(write_file, "fmv.s %s, ft0\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
 			fprintf(write_file, ".data\n");
-			fprintf(write_file, "_CONSTANT_%d: \"%s\"\\000", constant_value_counter, reg);
+			fprintf(write_file, "_CONSTANT_%d: \"%s\"\\000", constant_value_counter, regName[reg]);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
