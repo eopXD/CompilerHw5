@@ -56,8 +56,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 		} else if ( exprNode->semantic_value.const1->const_type == FLOATC ) { // const float
 			if ( (rs=in_reg(exprNode)) < 0 ) {
 				uf = exprNode->semantic_value.const1->const_u.fval;
-				rs = get_float_reg();
-				rt = get_addr_reg();
+				rt = get_reg();
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
 				fprintf(write_file, ".word %u\n", uf.u);
@@ -70,7 +69,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			free_reg(rt);
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs=in_reg(exprNode)) < 0 ) {
-				rs = get_addr_reg();
+				rs = get_reg();
 				memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
