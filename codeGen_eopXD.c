@@ -31,9 +31,8 @@ void codegen ( AST_NODE *program ) {
 }
 
 // expression returns register for use
-int gen_expr ( AST_NODE *exprNode ) {
-
 // results put into 'rs'
+int gen_expr ( AST_NODE *exprNode ) {
 	int rs, rt;
 	char *float_or_not;
 
@@ -87,35 +86,46 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
 		if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == INT_TYPE ) {
-			rs = get_int_reg();
-			fprintf(write, "li %s, %d\n", rs, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
+			rs = get_reg();
+			fprintf(write, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
 		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == BINARY_OPERATION ) {
-			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
+			float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
 			rs = gen_expr(exprNode->child);
 			rt = gen_expr(exprNode->child->rightSibling);
 
 			switch ( exprNode->semantic_value.exprSemanticValue.op.binaryOp ) {
 				case BINARY_OP_ADD: 
-					fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+					fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
 				case BINARY_OP_SUB: 
-					fprintf(write_filem "%ssub %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+					fprintf(write_file, "%ssub %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
 				case BINARY_OP_MUL: 
-					fprintf(write_filem "%smul %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+					fprintf(write_file, "%smul %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
 				case BINARY_OP_DIV: 
-					fprintf(write_filem "%sdiv %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
-				case BINARY_OP_AND: 
-					fprintf(write_filem "%sand %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
+					fprintf(write_file, "%sdiv %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
+				case BINARY_OP_AND: // BONUS: if ( A && B && C ) , 如果 A = 0 的話不要去執行 B 或是 C
+					fprintf(write_file, "%sand %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
 				case BINARY_OP_OR: 
-					fprintf(write_filem "%sor %s, %s, %s\n", float_or_not, exprName[rs], exprName[rs], exprName[rt]); break;
-
-				case BINARY_OP_EQ: case BINARY_OP_GE: case BINARY_OP_LE:
-				case BINARY_OP_NE: case BINARY_OP_GT: case BINARY_OP_LT:
-					/* TODO: comparison operations */
-					break;
+					fprintf(write_file, "%sor %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
+				case BINARY_OP_EQ: 
+					fprintf(write_file, "sub %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
+					fprintf(write_file, "seqz %s, %s\n", regName[rs], regName[rs]); break;
+				case BINARY_OP_NE: 
+					fprintf(write_file, "sub %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
+					fprintf(write_file, "snez %s, %s\n", regName[rs], regName[rs]); break;
+				case BINARY_OP_GE: 
+					fprintf(write_file, "slt %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
+					fprintf(write_file, "xori %s, %s, 1\n", regName[rs], reg[rs]); break;
+				case BINARY_OP_LE:
+					fprintf(write_file, "sgt %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
+					fprintf(write_file, "xori %s, %s, 1\n", regName[rs], regName[rs]); break;
+				case BINARY_OP_GT: 
+					fprintf(write_file, "sgt %s, %s, %s\n", regName[rs], regName[rs], regName[rt]); break;
+				case BINARY_OP_LT:
+					fpritnf(write_file, "slt %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);	break;
 				default: break;
 			}
 			free_reg(rt);
-		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == UNARY_TYPE ) {
+		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == UNARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			rs = gen_expr(exprNode->child);
 			switch ( exprNode->semantic_value.exprSemanticValue.op.unaryOp ) {
@@ -123,9 +133,15 @@ int gen_expr ( AST_NODE *exprNode ) {
 					/* don't need to do anything */
 					break;
 				case UNARY_OP_NEGATIVE: 
-					fprintf(fp, "%sneg %s, %s\n", type, exprName[rs], exprName[rs]); break;
+					if ( exprNode->child->dataType == INT_TYPE ) {
+						fprintf(write_file, "negw %s, %s\n", regName[rs], regName[rs]);
+					} else if ( exprNode->child->dataType == FLOAT_TYPE ) {
+						fprintf(write_file, "fneg.s %s, %s\n", regName[rs], regName[rs]);
+					} else {
+						fprintf(write_file, "[gen_expr] unary->child has unknown datatype\n");
+					}
 				case UNARY_OP_LOGICAL_NEGATION:
-					/* TODO: logical negation */
+					fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
 					break;
 				default: break;
 			}
@@ -139,11 +155,28 @@ int gen_expr ( AST_NODE *exprNode ) {
 			rs = "ft0";
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
+		if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
+			rt = gen_array_addr(exprNode);
+			rs = get_reg();
+			fprintf(write_file, "lw %s, 0(%s)\n", regName[rs], regName[rt]);
+			free_reg(rt);
+		} else if ( exprNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) {
+			if ( (rs=in_reg()) < 0 ) {
+				rs = get_reg();
+				if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry.nestingLevel == 0 ) { // global variable
+					rt = get_reg();
+					fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+					fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
+					free_reg(rt);
+				} else { // local varaible
+					fprintf(write_file, "lw %s, %d(fp)", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry.offset);
+				}
+			}
+		}
 	} else {
 		fprintf(stderr, "[gen_expr] unknown node type\n");
 		exit(1);
 	}
-
 	return (rs);
 }
 
@@ -353,7 +386,7 @@ void gen_func ( AST_NODE *funcNode ) {
 			++constant_value_counter;
 		}
 	} else { // normal function
-		fprintf(write_file, "jal jal _start_%s\n", func_name);
+		fprintf(write_file, "jal jal _start_%s\n", func_name, CONSTANT - idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 	}
 }
 
