@@ -92,7 +92,7 @@ void gen_returnStmt(AST_NODE* returnNode);
 // expr node
 void gen_constValue(AST_NODE* constValue);
 void gen_variableRValue(AST_NODE* variable);
-char* gen_expr(AST_NODE* exprNode); // return the reg of the expr
+int gen_expr(AST_NODE* exprNode); // return the reg of the expr
 
 void gen_write(AST_NODE* writeNode);
 void gen_read(AST_NODE* readNode);
