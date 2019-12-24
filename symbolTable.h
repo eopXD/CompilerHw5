@@ -81,8 +81,6 @@ typedef struct SymbolTableEntry
     SymbolAttribute* attribute;
     int nestingLevel;
     int offset; // for symbol record
-    int place = -1; // for AST node (tempories)
-
 } SymbolTableEntry;
 
 typedef struct SymbolTable

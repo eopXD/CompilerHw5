@@ -258,7 +258,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 	fprintf(write_file, "li %s, 0\n", regName[rt]);
 	for ( int i=0; i<arrayProp.dimension; ++i ) {
 		rd = gen_expr(dimNode); // tmp
-		int sz = (i == arrayProp.dimNode-1) ? 4 : arrayProp.sizeInEachDimension[i];
+		int sz = (i == arrayProp.dimension-1) ? 4 : arrayProp.sizeInEachDimension[i];
 		fprintf(write_file, "add, %s, %s, %s", regName[rt], regName[rt], regName[rd]);
 		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
 		fprintf(write_file, "mul %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
@@ -266,13 +266,13 @@ int gen_array_addr ( AST_NODE *idNode ) {
 		free_reg(rd);
 	}
 
-	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry.nestingLevel == 0 ) { // global 	
+	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global 	
 		rd = get_reg(idNode);
 		fprintf(write_file, "la %s, _g_%s\n", regName[rd], idNode->semantic_value.identifierSemanticValue.identifierName);
 		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
 		free_reg(rd);
 	} else { // local
-		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry.offset);
+		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 	}
 	free_reg(rt);
 	return (rs);
@@ -569,7 +569,7 @@ void gen_epilogue ( char *func_name ) {
 	fprintf(write_file, "jr ra\n");
 	fprintf(write_file, ".data\n");
 // TODO: offset to be determined
-	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, OFFSET);
+	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, 100-retrieveSymbol(func_name)->offset);
 }
 
 // stack allocatiom
