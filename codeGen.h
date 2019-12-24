@@ -4,6 +4,7 @@
 #define REGISTER_NUM 32
 
 #include "header.h"
+#include "symbolTable.h"
 
 char regName[64][8] = {
     "zero", "ra", "sp", "gp", "tp",
