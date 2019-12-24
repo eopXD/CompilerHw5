@@ -60,7 +60,7 @@ char* get_name(AST_NODE* node)
 
 int in_reg(AST_NODE* node)
 {
-    if(node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
+    if(node->nodeType == IDENTIFIER_NODE && node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
       SymbolTableEntry* entry = get_entry(node);
       if(entry->nestingLevel == 0){
           return -1;
