@@ -433,13 +433,14 @@ int gen_expr ( AST_NODE *exprNode ) {
 void gen_block ( AST_NODE *blockNode ) {
 	int frameSize = 0;
 	FOR_ALL_CHILD(blockNode, child) {
-		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) {
-			FOR_ALL_CHILD(child, declNode) {			
-				if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
-					gen_varDecl(declNode);
-				}
-			}
-		} else if ( child->nodeType == STMT_LIST_NODE ) {
+		//if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) {
+		//	FOR_ALL_CHILD(child, declNode) {			
+		//		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
+		//			gen_varDecl(declNode);
+		//		}
+		//	}
+		//} else if ( child->nodeType == STMT_LIST_NODE ) {
+		if ( child->nodeType == STMT_LIST_NODE ) {
 			AST_NODE *stmtNode = child->child;
 			FOR_ALL_CHILD(child, stmtNode) {
 				gen_stmt(stmtNode);
