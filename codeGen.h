@@ -18,6 +18,13 @@ typedef struct RegTable{
     char* varName;
     int status;
 } RegTable;
+
+// print binary representation of float
+union ufloat {
+	float f;
+	unsigned u;
+};
+
 // mama node
 void codegen ( AST_NODE *program );
 
@@ -26,14 +33,18 @@ SymbolTableEntry* get_entry(AST_NODE* node);
 
 // reg related
 char* get_reg( AST_NODE* node);  // get the free register
-void free_reg(); // free the unused reg
+
+char* get_int_reg ();
+char* get_addr_reg ();
+char* get_float_reg ();
+
+void free_reg( char* reg ); // free the unused reg
 
 // offset analysis
 void gen_offset ( AST_NODE *program ); // mama call
 int gen_offset ( AST_NODE *node, int offset ); // general node
 int block_offset ( AST_NODE *blockNode, int offset ); // block
 void param_offset ( AST_NODE *paramNode, int offset ); // parameter
-
 
 // more general node
 void gen_general(AST_NODE* node);
