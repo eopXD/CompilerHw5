@@ -266,13 +266,13 @@ int gen_array_addr ( AST_NODE *idNode ) {
 		free_reg(rd);
 	}
 
-	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry.nestingLevel == 0 ) { // global 	
+	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global 	
 		rd = get_reg(idNode);
 		fprintf(write_file, "la %s, _g_%s\n", regName[rd], idNode->semantic_value.identifierSemanticValue.identifierName);
 		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
 		free_reg(rd);
 	} else { // local
-		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry.offset);
+		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 	}
 	free_reg(rt);
 	return (rs);
