@@ -6,7 +6,7 @@
 #include "header.h"
 #include "symbolTable.h"
 
-char regName[64][8] = {
+/*char regName[64][8] = {
     "zero", "ra", "sp", "gp", "tp",
     "t0", "t1", "t2", "fp", "s1",
     "a0", "a1", "a2", "a3", "a4",
@@ -20,8 +20,8 @@ char regName[64][8] = {
     "fs2", "fs3", "fs4", "fs5", "fs6",
     "fs7", "fs8", "fs9", "fs10", "fs11",
     "ft8", "ft9", "ft10", "ft11"
-};
-
+};*/
+/*
 int useRegList[64] = {
     1, 1, 1, 1, 1,
     0, 0, 0, 1, 0,
@@ -37,6 +37,7 @@ int useRegList[64] = {
     0, 0, 0, 0, 0,
     0, 0, 0, 0
 };
+*/
 // for the reg tracking 
 typedef enum regAttributeKind
 {
