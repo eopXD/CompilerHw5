@@ -190,10 +190,13 @@ void free_reg ( int regIndex ) {
   int addr_reg;
   if ( reg.status == DIRTY ) {
     if ( reg.node->nodeType == IDENTIFIER_NODE ) {
-      AST_NODE *node = reg.node;
+	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
       addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
+      
+	  fprintf(write_file, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
+      fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
         if ( entry->nestingLevel == 0 ) { // global normal
           fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
