@@ -608,7 +608,6 @@ void gen_epilogue (AST_NODE* funcDeclNode, char *func_name ) {
 	fprintf(write_file, "ld fp,0(fp)\n");
 	fprintf(write_file, "jr ra\n");
 	fprintf(write_file, ".data\n");
-// TODO: offset to be determined
     AST_NODE *idNode = funcDeclNode->child->rightSibling;
     SymbolTableEntry* entry = get_entry(idNode);
     /*if(entry == NULL){
@@ -624,6 +623,8 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
 	AST_NODE *paramNode = idNode->rightSibling;
 	AST_NODE *blockNode = paramNode->rightSibling;
+	
+	initial_reg();
 
 	current_function = func_name;
 	fprintf(write_file, ".text\n");
@@ -661,8 +662,8 @@ void gen_func ( AST_NODE *funcNode ) {
 		AST_NODE *paramNode = paramListNode->child;
 		int reg = gen_expr(paramNode);
 		if ( paramNode->dataType == INT_TYPE ) {
-			fprintf(write_file, "lw t0, -4(fp)\n");
-			fprintf(write_file, "mv %s, t0\n", regName[reg]);
+			fprintf(write_file, "lw %s, -4(fp)\n", regName[reg]);
+			fprintf(write_file, "mv a0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
