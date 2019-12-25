@@ -328,7 +328,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 	for ( int i=0; i<arrayProp.dimension; ++i ) {
 		rd = get_int_reg(dimNode); // tmp
 		int sz = (i == arrayProp.dimension-1) ? 4 : arrayProp.sizeInEachDimension[i];
-		fprintf(write_file, "add, %s, %s, %s", regName[rt], regName[rt], regName[rd]);
+		fprintf(write_file, "add, %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
 		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
 		fprintf(write_file, "mul %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
 		dimNode = dimNode->rightSibling;
@@ -498,7 +498,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 					fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
 					free_reg(rt);
 				} else { // local varaible
-					fprintf(write_file, "lw %s, %d(fp)", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+					fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 				}
 			}
 		}
