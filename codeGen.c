@@ -42,11 +42,11 @@ int useRegList[64] = {
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1
 };
 
 SymbolTableEntry* get_entry(AST_NODE* node)
@@ -116,27 +116,56 @@ void initial_reg()
       }
     }
 }
-
-int get_reg(AST_NODE* node)
+int get_float_reg(AST_NODE* node)
   {
       int index = in_reg(node);
       if(index > 0){
           return index;
       }
-      for(int i = 0; i < REGISTER_NUM; i++){
+      
+      for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == FREE){
               store_reg(node, i);
               return i;
           }
       }
-      for(int i = 0; i < REGISTER_NUM; i++){
+      for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == CLEAN){
               free_reg(i);
               store_reg(node, i);
               return i;
           }
       }
-      for(int i = 0; i < REGISTER_NUM; i++){
+      for(int i = 32; i < REGISTER_NUM; i++){
+          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+              free_reg(i);
+              store_reg(node, i);
+              return i;
+          }
+      }
+      return -1;
+}
+int get_int_reg(AST_NODE* node)
+  {
+      int index = in_reg(node);
+      if(index > 0){
+          return index;
+      }
+      
+      for(int i = 0; i < 32; i++){
+          if(regTable[i].status == FREE){
+              store_reg(node, i);
+              return i;
+          }
+      }
+      for(int i = 0; i < 32; i++){
+          if(regTable[i].status == CLEAN){
+              free_reg(i);
+              store_reg(node, i);
+              return i;
+          }
+      }
+      for(int i = 0; i < 32; i++){
           if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
               free_reg(i);
               store_reg(node, i);
@@ -204,6 +233,7 @@ void gen_assignStmt(AST_NODE* assignNode)
       SymbolTableEntry* entry2 = get_entry(leftOp);
       if(leftOp->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
           int resultReg = gen_expr(rightOp);
+          /*
           int index = in_reg(leftOp);
           if(rightOp->nodeType == EXPR_NODE){
               if(index > 0){
@@ -217,7 +247,9 @@ void gen_assignStmt(AST_NODE* assignNode)
               }
               fprintf(write_file, "mv %s, %s\n", regName[index], regName[resultReg]);
           }
-          regTable[index].status = DIRTY;
+          */
+          store_reg(leftOp, resultReg);
+          regTable[resultReg].status = DIRTY;
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
           int index = gen_expr(rightOp); 
           SymbolTableEntry* entry = get_entry(leftOp);
