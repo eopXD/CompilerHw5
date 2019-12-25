@@ -196,14 +196,14 @@ void free_reg(int regIndex)
                   fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
                   fprintf(write_file, "sw %s, 0(%s)\n", regName[regIndex], regName[rt]);
               }
-              fprintf(write_file, "sw %s, %d(fp)\n", regName[regIndex], entry->offset);
+              fprintf(write_file, "sw %s, -%d(fp)\n", regName[regIndex], entry->offset);
           }else if(reg.node->dataType == FLOAT_TYPE){
               if(get_entry(reg.node)->nestingLevel == 0){
                   int rt = get_int_reg(reg.node);
                   fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
                   fprintf(write_file, "fsw %s, 0(%s)\n", regName[regIndex], regName[rt]);
               }
-              fprintf(write_file, "fsw %s, %d(fp)\n", regName[regIndex], entry->offset);
+              fprintf(write_file, "fsw %s, -%d(fp)\n", regName[regIndex], entry->offset);
 
           }
 
@@ -281,7 +281,7 @@ void gen_assignStmt(AST_NODE* assignNode)
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
           int index = gen_expr(rightOp); 
           SymbolTableEntry* entry = get_entry(leftOp);
-          fprintf(write_file, "sw %s, %d(fp)\n", regName[index], entry->offset);
+          fprintf(write_file, "sw %s, -%d(fp)\n", regName[index], entry->offset);
           free_reg(index);
       }
 }
@@ -371,7 +371,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
 		free_reg(rd);
 	} else { // local
-		fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+		fprintf(write_file, "lw %s, -%d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 	}
 	free_reg(rt);
 	return (rs);
@@ -530,8 +530,7 @@ int gen_expr ( AST_NODE *exprNode ) {
                         fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
                         free_reg(rt);
                     } else { // local varaible
-                        //fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-                        fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                        fprintf(write_file, "lw %s, -%d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
                     }
                 }else if(exprNode->dataType == FLOAT_TYPE){
     	        	rs = get_float_reg(exprNode);
@@ -541,8 +540,7 @@ int gen_expr ( AST_NODE *exprNode ) {
                 	    fprintf(write_file, "flw %s, %s\n", regName[rs], regName[rt]);
                     	free_reg(rt);
                   	} else { // local varaible
-                        //fprintf(write_file, "flw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-                        fprintf(write_file, "flw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                        fprintf(write_file, "flw %s, -%d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
                     }	
 				}
 			}
