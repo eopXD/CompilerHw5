@@ -51,7 +51,8 @@ int useRegList[64] = {
 
 SymbolTableEntry* get_entry(AST_NODE* node)
 {
-      return node->semantic_value.identifierSemanticValue.symbolTableEntry;
+   // retrieveSymbol(node->semantic_value.identifierSemanticValue.identifierName);
+    return node->semantic_value.identifierSemanticValue.symbolTableEntry;
 }
 char* get_name(AST_NODE* node)
 {
@@ -62,13 +63,17 @@ int in_reg(AST_NODE* node)
 {
     if(node->nodeType == IDENTIFIER_NODE && node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
       SymbolTableEntry* entry = get_entry(node);
+      char*name = get_name(node);
+      //printf("QQ, %s\n", name);
       if(entry->nestingLevel == 0){
           return -1;
       }
       for(int i = 0; i < REGISTER_NUM; i++){
-          SymbolTableEntry* tmp = get_entry(regTable[i].node);
-          if(!strcmp(entry->name, tmp->name)){
-              return i;
+          if(regTable[i].kind == VARIABLE_KIND){
+              SymbolTableEntry* tmp = get_entry(regTable[i].node);
+              if(!strcmp(entry->name, tmp->name)){
+                  return i;
+              }
           }
       }
       return -1;
