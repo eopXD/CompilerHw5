@@ -710,7 +710,6 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
-			fprintf(write_file, "lw %s, -8(fp)\n", regName[reg]);
 			fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
