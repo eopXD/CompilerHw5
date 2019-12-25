@@ -706,6 +706,7 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	AST_NODE *paramNode = idNode->rightSibling;
 	AST_NODE *blockNode = paramNode->rightSibling;
 	
+  fprintf(stderr, "[gen_funcDecl] start\n");
 	initial_reg();
 
 	current_function = func_name;
@@ -722,6 +723,9 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 	fprintf(write_file, "_end_%s:\n", func_name);
 	callee_restore();
 	gen_epilogue(funcDeclNode, func_name);	
+
+  fprintf(stderr, "[gen_funcDecl] end\n");
+  
 }
 
 // function call
@@ -733,22 +737,27 @@ void gen_func ( AST_NODE *funcNode ) {
 	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
 
 	if ( strcmp(func_name, "read") == 0 ) { // int read
+    fprintf(stderr, "[gen_func] read\n");
     free_reg(5);
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
+    fprintf(stderr, "[gen_func] fread\n");
     free_reg(17);
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
-		AST_NODE *paramNode = paramListNode->child;
+		fprintf(stderr, "[gen_func] write\n");
+    AST_NODE *paramNode = paramListNode->child;
 		int reg = gen_expr(paramNode);
 		if ( paramNode->dataType == INT_TYPE ) {
+      fprintf(stderr, "[gen_func] write int\n");
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
-			fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
+			fprintf(stderr, "[gen_func] write float\n");
+      fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
