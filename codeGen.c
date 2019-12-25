@@ -281,7 +281,7 @@ void gen_assignStmt(AST_NODE* assignNode)
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
           int index = gen_expr(rightOp); 
           SymbolTableEntry* entry = get_entry(leftOp);
-          fprintf(write_file, "sw %s, %d(fp)", regName[index], entry->offset);
+          fprintf(write_file, "sw %s, %d(fp)\n", regName[index], entry->offset);
           free_reg(index);
       }
 }
