@@ -192,14 +192,18 @@ void free_reg(int regIndex)
             SymbolTableEntry* entry = get_entry(reg.node);
            if(reg.node->dataType == INT_TYPE){
               if(get_entry(reg.node)->nestingLevel == 0){
-                  fprintf(write_file, "sw %s \n", regName[regIndex]);
+                  int rt = get_int_reg(reg.node);
+                  fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
+                  fprintf(write_file, "sw %s, 0(%s)\n", regName[regIndex], regName[rt]);
               }
-              fprintf(write_file, "sw %s %d(fp)\n", regName[regIndex], entry->offset);
+              fprintf(write_file, "sw %s, %d(fp)\n", regName[regIndex], entry->offset);
           }else if(reg.node->dataType == FLOAT_TYPE){
               if(get_entry(reg.node)->nestingLevel == 0){
-                  fprintf(write_file, "fsw %s \n", regName[regIndex]);
+                  int rt = get_int_reg(reg.node);
+                  fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
+                  fprintf(write_file, "fsw %s, 0(%s)\n", regName[regIndex], regName[rt]);
               }
-              fprintf(write_file, "fsw %s %d(fp)\n", regName[regIndex], entry->offset);
+              fprintf(write_file, "fsw %s, %d(fp)\n", regName[regIndex], entry->offset);
 
           }
 
