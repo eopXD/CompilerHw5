@@ -315,6 +315,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 }
 // expression returns register for use
 int gen_expr ( AST_NODE *exprNode ) {
+	fprintf(stderr, "XD\n");
 
 // results put into 'rs'
 	int rs, rt;
@@ -644,7 +645,8 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 
 // function call
 void gen_func ( AST_NODE *funcNode ) {
-    initial_reg();
+	fprintf(stderr, "[gen_func]\n");
+	initial_reg();
 	AST_NODE *idNode = funcNode->child;
 	AST_NODE *paramListNode = idNode->rightSibling;
 
@@ -667,8 +669,8 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
-			fprintf(write_file, "lw ft0, -8(fp)\n");
-			fprintf(write_file, "fmv.s %s, ft0\n", regName[reg]);
+			fprintf(write_file, "lw %s, -8(fp)\n", regName[reg]);
+			fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
