@@ -383,10 +383,10 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
 		fprintf(stderr, "[gen_expr] EXPR_NODE\n");
-		if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == INT_TYPE ) {
+		if( exprNode->dataType == INT_TYPE ) {
 			rs = get_reg(exprNode);
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
-		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
+		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			rs = gen_expr(exprNode->child);
 			rt = gen_expr(exprNode->child->rightSibling);
@@ -423,7 +423,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 				default: break;
 			}
 			free_reg(rt);
-		} else if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
+		} else if( exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			rs = gen_expr(exprNode->child);
 			switch ( exprNode->semantic_value.exprSemanticValue.op.unaryOp ) {
