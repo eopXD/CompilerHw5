@@ -796,9 +796,9 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 				for ( int i=0; i< arrayProp.dimension; ++i ) {
 					sz *= arrayProp.sizeInEachDimension[i];
 				}
-				offset -= sz;
+				offset += sz;
 			} else {
-				offset -= 4;
+				offset += 4;
 			}
 			sym->offset = offset;
 			idNode = idNode->rightSibling;
