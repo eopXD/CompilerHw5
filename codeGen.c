@@ -181,10 +181,19 @@ void free_reg(int regIndex)
     if(reg.status == DIRTY){
         if(reg.node->nodeType == IDENTIFIER_NODE){
             SymbolTableEntry* entry = get_entry(reg.node);
-            if(get_entry(reg.node)->nestingLevel == 0){
-                fprintf(write_file, "sw %s \n", regName[regIndex]);
-            }
-            fprintf(write_file, "sw %s %d(fp)\n", regName[regIndex], entry->offset);
+           if(reg.node->dataType == INT_TYPE){
+              if(get_entry(reg.node)->nestingLevel == 0){
+                  fprintf(write_file, "sw %s \n", regName[regIndex]);
+              }
+              fprintf(write_file, "sw %s %d(fp)\n", regName[regIndex], entry->offset);
+          }else if(reg.node->dataType == FLOAT_TYPE){
+              if(get_entry(reg.node)->nestingLevel == 0){
+                  fprintf(write_file, "fsw %s \n", regName[regIndex]);
+              }
+              fprintf(write_file, "fsw %s %d(fp)\n", regName[regIndex], entry->offset);
+
+          }
+
             reg.status = FREE;
         }
     }
