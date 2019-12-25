@@ -279,6 +279,23 @@ void gen_assignStmt(AST_NODE* assignNode)
           printf("%d\n",resultReg);
           regTable[resultReg].status = DIRTY;
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
+
+
+
+/*
+TODO LIST
+
+entry->offset right here is wrong.
+need to correctify assignStmt.
+
+*/
+
+
+
+
+
+
+
           int index = gen_expr(rightOp); 
           SymbolTableEntry* entry = get_entry(leftOp);
           if(index >= 32){
@@ -519,6 +536,14 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
     if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
+/*
+TODO: 
+
+same with assign statement, need to calculate correct offset for array.
+
+(BEWARE of variable type)
+*/
+
 			rt = gen_array_addr(exprNode);
 			rs = get_int_reg(exprNode);
 			fprintf(write_file, "lw %s, 0(%s)\n", regName[rs], regName[rt]);
@@ -604,9 +629,9 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
         }
 				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
 					if ( typeNode->dataType == INT_TYPE ) {
-						fprintf(write_file, "_g_%s .word %d\n", name, ival);
+						fprintf(write_file, "_g_%s: .word %d\n", name, ival);
 					} else if ( typeNode->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "_g_%s .word %u\n", name, fval);
+						fprintf(write_file, "_g_%s: .word %u\n", name, fval);
 					} else {
 						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
 					}
@@ -616,7 +641,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 					for ( int i=0; i<arrayProp.dimension; ++i ) {
 						sz *= arrayProp.sizeInEachDimension[i];
 					}
-					fprintf(write_file, "_g_%s .zero %d\n", name, sz);
+					fprintf(write_file, "_g_%s: .zero %d\n", name, sz);
 				}
 				idNode = idNode->rightSibling;
 			}
