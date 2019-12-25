@@ -107,7 +107,7 @@ void gen_global_varDecl ( AST_NODE* varDeclDimList );
 
 // func related
 void gen_prologue ( char *func_name );
-void gen_epilogue ( char *func_name );
+void gen_epilogue (AST_NODE* node ,char *func_name );
 void callee_save ();
 void callee_restore ();
 void gen_func(AST_NODE* funcNode); // function call

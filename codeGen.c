@@ -596,7 +596,7 @@ void callee_restore () {
 	fprintf(write_file, "flw ft6,176(sp)\n");
 	fprintf(write_file, "flw ft7,180(sp)\n");
 }
-void gen_epilogue ( char *func_name ) {
+void gen_epilogue (AST_NODE* funcDeclNode, char *func_name ) {
 	fprintf(write_file, "ld ra,8(fp)\n");
 	fprintf(write_file, "mv sp,fp\n");
 	fprintf(write_file, "add sp,sp,8\n");
@@ -604,7 +604,12 @@ void gen_epilogue ( char *func_name ) {
 	fprintf(write_file, "jr ra\n");
 	fprintf(write_file, ".data\n");
 // TODO: offset to be determined
-	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, 100-retrieveSymbol(func_name)->offset);
+    AST_NODE *idNode = funcDeclNode->child->rightSibling;
+    SymbolTableEntry* entry = get_entry(idNode);
+    /*if(entry == NULL){
+        printf("QQQQQ\n");
+    }*/
+	fprintf(write_file, "_frameSize_%s: .word %d\n", func_name, 180+ entry->offset);
 }
 
 // stack allocatiom
@@ -628,7 +633,7 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 // end of function
 	fprintf(write_file, "_end_%s:\n", func_name);
 	callee_restore();
-	gen_epilogue(func_name);	
+	gen_epilogue(funcDeclNode, func_name);	
 }
 
 // function call
@@ -661,8 +666,11 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
+            char str[256] = {};
 			fprintf(write_file, ".data\n");
-			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, regName[reg]);
+            strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+            str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
