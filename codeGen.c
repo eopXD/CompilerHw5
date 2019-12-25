@@ -563,21 +563,19 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
 			AST_NODE *typeNode = declNode->child;
 			AST_NODE *idNode = typeNode->rightSibling;
-			int ival =0;
+			int ival = 0;
 			float fval = 0;
 			while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
 				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
 				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
 				TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
-				
 				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
 					if ( typeNode->dataType == INT_TYPE ) {
-						fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, ival);
+						fprintf(write_file, "_g_%s .word %d\n", name, ival);
 					} else if ( typeNode->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "_g_%s .DIRECTIVE %f\n", name, fval);
+						fprintf(write_file, "_g_%s .word %f\n", name, fval);
 					} else {
 						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
-
 					}
 				} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
 					int sz = 4;
@@ -585,7 +583,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 					for ( int i=0; i<arrayProp.dimension; ++i ) {
 						sz *= arrayProp.sizeInEachDimension[i];
 					}
-					fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, sz);
+					fprintf(write_file, "_g_%s .zero %d\n", name, sz);
 				}
 				idNode = idNode->rightSibling;
 			}
