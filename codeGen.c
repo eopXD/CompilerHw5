@@ -491,16 +491,30 @@ int gen_expr ( AST_NODE *exprNode ) {
 			free_reg(rt);
 		} else if ( exprNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) {
 			if ( (rs=in_reg(exprNode)) < 0 ) {
-				rs = get_int_reg(exprNode);
-				if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
-					rt = get_int_reg(exprNode);
-					fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
-					fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
-					free_reg(rt);
-				} else { // local varaible
-					
-					fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                if(exprNode->dataType == INT_TYPE){
+                    rs = get_int_reg(exprNode);
+                    if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
+                        rt = get_int_reg(exprNode);
+                        fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+                        fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
+                        free_reg(rt);
+                    } else { // local varaible
+                        fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                        fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                    }
+                }else if(exprNode->dataType == FLOAT_TYPE){
+                    rs = get_float_reg(exprNode);
+                    if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
+                        rt = get_int_reg(exprNode);
+                        fprintf(write_file, "fla %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+                        fprintf(write_file, "flw %s, %s\n", regName[rs], regName[rt]);
+                        free_reg(rt);
+                    } else { // local varaible
+                        fprintf(write_file, "flw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                        fprintf(write_file, "flw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+                    }
 				}
+
 			}
 		}
 	} else {
