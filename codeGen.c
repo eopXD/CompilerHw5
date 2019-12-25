@@ -49,6 +49,12 @@ int useRegList[64] = {
     1, 1, 1, 1
 };
 
+void copy_reg(RegTable a[], RegTable b[]){
+    for(int i = 0; i < REGISTER_NUM; i ++){
+        a[i] = b[i];
+    }
+    return ;
+}
 SymbolTableEntry* get_entry(AST_NODE* node)
 {
    // retrieveSymbol(node->semantic_value.identifierSemanticValue.identifierName);
@@ -71,6 +77,7 @@ int in_reg(AST_NODE* node)
       for(int i = 0; i < REGISTER_NUM; i++){
           if(regTable[i].kind == VARIABLE_KIND){
               SymbolTableEntry* tmp = get_entry(regTable[i].node);
+    //          printf("%s %s\n", entry->name,tmp->name);
               if(!strcmp(entry->name, tmp->name)){
                   return i;
               }
@@ -208,28 +215,32 @@ void gen_stmt(AST_NODE* stmtNode)
           gen_block(stmtNode);
       }
       else{
-          switch(stmtNode->semantic_value.stmtSemanticValue.kind){
-              case WHILE_STMT:
-                  gen_whileStmt(stmtNode);
-                  break;
-              case FOR_STMT:
-                  printf("QQQQ\n NO FOR\n");
-                  break;
-              case ASSIGN_STMT:
-                  gen_assignStmt(stmtNode);
-                  break;
-              case RETURN_STMT:
-                  gen_returnStmt(stmtNode);
-                  break;
-              case FUNCTION_CALL_STMT:
-                  gen_func(stmtNode);
-                  break;
-              case IF_STMT:
-                  gen_ifStmt(stmtNode);
-                  break;
-              default:
-                  printf("QQQQQ\n ERROR\n");
-                  break;
+          if(stmtNode->semantic_value.stmtSemanticValue.kind == FUNCTION_CALL_STMT){
+              gen_func(stmtNode);
+          }else{
+
+              switch(stmtNode->semantic_value.stmtSemanticValue.kind){
+                  case WHILE_STMT:
+                      gen_whileStmt(stmtNode);
+                      break;
+                  case FOR_STMT:
+                      printf("QQQQ\n NO FOR\n");
+                      break;
+                  case ASSIGN_STMT:
+                      gen_assignStmt(stmtNode);
+                      break;
+                  case RETURN_STMT:
+                      gen_returnStmt(stmtNode);
+                      break;
+                  case FUNCTION_CALL_STMT:
+                      break;
+                  case IF_STMT:
+                      gen_ifStmt(stmtNode);
+                      break;
+                  default:
+                      printf("QQQQQ\n ERROR\n");
+                      break;
+              }
           }
       }
 }
@@ -241,6 +252,7 @@ void gen_assignStmt(AST_NODE* assignNode)
       
       SymbolTableEntry* entry2 = get_entry(leftOp);
       if(leftOp->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
+          //printf("vars %s\n", get_name(leftOp));
           int resultReg = gen_expr(rightOp);
           /*
           int index = in_reg(leftOp);
@@ -258,6 +270,7 @@ void gen_assignStmt(AST_NODE* assignNode)
           }
           */
           store_reg(leftOp, resultReg);
+          printf("%d\n",resultReg);
           regTable[resultReg].status = DIRTY;
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
           int index = gen_expr(rightOp); 
@@ -308,7 +321,6 @@ void gen_whileStmt(AST_NODE* whileNode)
     fprintf(write_file, "j _Test%d\n", local_label_number);
     fprintf(write_file, "_Lexit%d\n", local_label_number);
 }
-
 void codegen ( AST_NODE *program ) {
 	write_file = fopen("output.s", "w");
 	if ( write_file == NULL ) {
@@ -321,7 +333,10 @@ void codegen ( AST_NODE *program ) {
 		if ( child->nodeType == VARIABLE_DECL_LIST_NODE ) { // global decl
 			gen_global_varDecl(child);
 		} else if ( child->nodeType == DECLARATION_NODE ) { // global function (including main)
+            RegTable tmp[REGISTER_NUM];
+            copy_reg(tmp, regTable);
 			gen_funcDecl(child);
+            copy_reg(regTable, tmp);
 		}
 	}
 	fclose(write_file);
@@ -500,6 +515,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			free_reg(rt);
 		} else if ( exprNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) {
 			if ( (rs=in_reg(exprNode)) < 0 ) {
+                printf("var %s\n", get_name(exprNode));
                 if(exprNode->dataType == INT_TYPE){
                     rs = get_int_reg(exprNode);
                     if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
@@ -711,7 +727,6 @@ void gen_funcDecl ( AST_NODE *funcDeclNode ) {
 // function call
 void gen_func ( AST_NODE *funcNode ) {
 	fprintf(stderr, "[gen_func]\n");
-	initial_reg();
 	AST_NODE *idNode = funcNode->child;
 	AST_NODE *paramListNode = idNode->rightSibling;
 
