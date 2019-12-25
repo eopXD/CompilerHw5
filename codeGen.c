@@ -253,58 +253,41 @@ void gen_stmt(AST_NODE* stmtNode)
 
 void gen_assignStmt(AST_NODE* assignNode)
 {   
-      AST_NODE* leftOp = assignNode->child;
-      AST_NODE* rightOp = leftOp->rightSibling;
-      
-      SymbolTableEntry* entry2 = get_entry(leftOp);
-      if(leftOp->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
-          //printf("vars %s\n", get_name(leftOp));
-          int resultReg = gen_expr(rightOp);
-          /*
-          int index = in_reg(leftOp);
-          if(rightOp->nodeType == EXPR_NODE){
-              if(index > 0){
-                  store_reg(leftOp, resultReg);
-                  regTable[resultReg].status = DIRTY;
-                  free_reg(index);
-              }
-          }else{
-              if(index < 0){
-                  index = get_reg(leftOp);
-              }
-              fprintf(write_file, "mv %s, %s\n", regName[index], regName[resultReg]);
-          }
-          */
-          store_reg(leftOp, resultReg);
-          printf("%d\n",resultReg);
-          regTable[resultReg].status = DIRTY;
-      } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
+  char *float_or_not = (assignNode->dataType == INT_TYPE) ? "" : "f";;
+  AST_NODE *lhs = assignNode->child;
+  int lhs_addr_reg = get_int_reg(assignNode);
+  int rhs_reg = gen_expr(lhs->rightSibling); // acquire rhs as register
 
+  if ( lhs->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // noraml var
 
-
-/*
-TODO LIST
-
-entry->offset right here is wrong.
-need to correctify assignStmt.
-
-*/
-
-
-
-
-
-
-
-          int index = gen_expr(rightOp); 
-          SymbolTableEntry* entry = get_entry(leftOp);
-          if(index >= 32){
-              fprintf(write_file, "fsw %s, -%d(fp)\n", regName[index], entry->offset);
-          }else{
-              fprintf(write_file, "sw %s, -%d(fp)\n", regName[index], entry->offset);
-          }
-          free_reg(index);
-      }
+    if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global normal
+      fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[lhs_addr_reg], lhs->semantic_value.identifierSemanticValue.identifierName);
+/* do your Register Tracking Here */
+      fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[rhs_reg], regName[lhs_addr_reg]); // stores rhs to memory
+/*================================*/
+    } else { // local normal
+      fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[lhs_addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+/* do your Register Tracking here */
+      fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[rhs_reg], regName[lhs_addr_reg]);    
+/*================================*/
+    }
+  } else if ( lhs->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
+    if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
+      fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
+      fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
+/* do your Register Tracking here */
+      fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[lhs_addr_reg], 4*lhs->child->semantic_value.const1->const_u.intval, regName[lhs_addr_reg]);
+/*================================*/
+    } else { // local array
+/* do your Register Tracking here */
+      fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[lhs_addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+/*================================*/
+    }
+  } else {
+    fprintf(stderr, "[gen_assignStmt] receive bad lhs SemanticValueKind\n");
+    exit(1);
+  }
+  free_reg(rhs_reg);
 }
 
 void gen_returnStmt(AST_NODE* returnNode)
@@ -369,34 +352,48 @@ void codegen ( AST_NODE *program ) {
 	fclose(write_file);
 }
 
+
+// returns a register that has the correct value of the array address
+/*
+BEWARE, because testdata only contains 1D array with constant index, so right here I am only fetching for the constant integer value inside
+So this part is currently ommited because hw5 does not support pointer or multiple dimension array.
+*/
+/*
 int gen_array_addr ( AST_NODE *idNode ) {
 	ArrayProperties arrayProp = 
 	 idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->properties.arrayProperties;
-	AST_NODE *dimNode = idNode->child;
-	int rs = get_int_reg(idNode), rt = get_int_reg(idNode); // result / offset
-	int rd;
-	fprintf(write_file, "li %s, 0\n", regName[rt]);
+	AST_NODE *dimListNode = idNode->child; // 
+	int rs = get_int_reg(idNode);
+  int offset_cnt = 0; // offset count
+
+  fprintf(write_file, "li %s, 0\n", regName[offset_reg]); // set rt to 0
 	for ( int i=0; i<arrayProp.dimension; ++i ) {
-		rd = get_int_reg(dimNode); // tmp
+		int dim_reg = gen_expr(dimNode); // dimension register
 		int sz = (i == arrayProp.dimension-1) ? 4 : arrayProp.sizeInEachDimension[i];
-		fprintf(write_file, "add %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
-		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
-		fprintf(write_file, "mul %s, %s, %s\n", regName[rt], regName[rt], regName[rd]);
+		
+    fprintf(write_file, "add %s, %s, %s\n", regName[ofst], regName[ofst], regName[dim_reg]);
+    fprintf(write_file, "li %s, %d\n", regName[multply], sz);
+    fprintf(write_file, "mul %s, %s, %s\n", regName[ofst], regName[ofst], regName[mult]);
+
 		dimNode = dimNode->rightSibling;
-		free_reg(rd);
+		free_reg(dim_reg);
 	}
 
-	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global 	
-		rd = get_int_reg(idNode);
+  int rs = get_int_reg(idNode);
+
+	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
 		fprintf(write_file, "la %s, _g_%s\n", regName[rd], idNode->semantic_value.identifierSemanticValue.identifierName);
+
 		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
 		free_reg(rd);
-	} else { // local
+	} else { // local array
 		fprintf(write_file, "lw %s, -%d(fp)\n", regName[rs], idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 	}
 	free_reg(rt);
 	return (rs);
-}
+}*/
+
+
 // expression returns register for use
 int gen_expr ( AST_NODE *exprNode ) {
 	fprintf(stderr, "[gen_expr] start\n");
@@ -518,7 +515,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 					} else if ( exprNode->child->dataType == FLOAT_TYPE ) {
 						fprintf(write_file, "fneg.s %s, %s\n", regName[rs], regName[rs]);
 					} else {
-						fprintf(write_file, "[gen_expr] unary->child has unknown datatype\n");
+						fprintf(write_file, "[gen_expr] unary->child has unknown dataType\n");
 					}
 				case UNARY_OP_LOGICAL_NEGATION:
           fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
@@ -536,49 +533,62 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
     if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
-/*
-TODO: 
+    /*
+    testdata in hw5 shall not do into this if-statement
+    (BEWARE of variable type)
+    */  
+      fprintf(stderr, "[gen_expr] exprNode is IDENTIFIER_NODE - kind = ARRAY_ID\n");
+      float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
+      if ( exprNode->dataType == INT_TYPE ) {
+        rs = get_int_reg(exprNode);
+      } else if ( exprNode->dataType == FLOAT_TYPE ) {
+        rs = get_int_reg(exprNode);
+      } else {
+        fprintf(stderr, "[gen_expr] IDENTIFIER_NODE - recieve unknown dataType exprNode\n");
+        exit(1);
+      }
 
-same with assign statement, need to calculate correct offset for array.
-
-(BEWARE of variable type)
-*/
-
-			rt = gen_array_addr(exprNode);
-			rs = get_int_reg(exprNode);
-			fprintf(write_file, "lw %s, 0(%s)\n", regName[rs], regName[rt]);
-			free_reg(rt);
+      AST_NODE *dimListNode = exprNode->child;
+      if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
+        if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global arrays
+          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rs]);
+        } else { // local array
+          fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+        }
+      } else {
+        fprintf(stderr, "nani! the arrayNode->child is not CONST_VALUE_NODE\n");
+        exit(1);
+      }
 		} else if ( exprNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) {
 			if ( (rs=in_reg(exprNode)) < 0 ) {
-                printf("var %s\n", get_name(exprNode));
-                if(exprNode->dataType == INT_TYPE){
-                    rs = get_int_reg(exprNode);
-                    if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
-                        rt = get_int_reg(exprNode);
-                        fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
-                        fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
-                        free_reg(rt);
-                    } else { // local varaible
-                        fprintf(write_file, "lw %s, -%d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-                    }
-                }else if(exprNode->dataType == FLOAT_TYPE){
-    	        	rs = get_float_reg(exprNode);
-	                if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
-        	            rt = get_int_reg(exprNode);
-            	        fprintf(write_file, "fla %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
-                	    fprintf(write_file, "flw %s, %s\n", regName[rs], regName[rt]);
-                    	free_reg(rt);
-                  	} else { // local varaible
-                        fprintf(write_file, "flw %s, -%d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-                    }	
-				}
-			}
+        fprintf(stderr, "[gen_expr] varID: %s not in reg\n", get_name(exprNode));
+        float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
+        if ( exprNode->dataType == INT_TYPE ) {
+          rs = get_int_reg(exprNode);
+        } else if ( exprNode->dataType == FLOAT_TYPE ) {
+          rs = get_int_reg(exprNode);
+        } else {
+          fprintf(stderr, "[gen_expr] IDENTIFIER_NODE - recieve unknown dataType exprNode\n");
+          exit(1);
+        }
+        rt = get_int_reg(exprNode);
+        if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
+            fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+            fprintf(write_file, "%slw %s, %s\n", float_or_not, regName[rs], regName[rt]);
+            free_reg(rt);
+        } else { // local varaible
+            fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+        }
+			} else {
+        fprintf(stderr, "[gen_expr] varID: %s already in reg\n", get_name(exprNode));
+      }
 		}
 	} else {
 		fprintf(stderr, "[gen_expr] unknown node type\n");
 		exit(1);
 	}
-
 	return rs;
 }
 
@@ -631,7 +641,7 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 					if ( typeNode->dataType == INT_TYPE ) {
 						fprintf(write_file, "_g_%s: .word %d\n", name, ival);
 					} else if ( typeNode->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "_g_%s: .word %u\n", name, fval);
+						fprintf(write_file, "_g_%s: .word %u\n", name, fval.u);
 					} else {
 						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
 					}
