@@ -186,36 +186,37 @@ int get_int_reg(AST_NODE* node)
 
 void free_reg ( int regIndex ) {
   char *float_or_not; 
-  RegTable &reg = regTable[regIndex];
+  RegTable reg = regTable[regIndex];
   int addr_reg;
   if ( reg.status == DIRTY ) {
     if ( reg.node->nodeType == IDENTIFIER_NODE ) {
+      AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
       addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
-      if ( reg.node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
+      if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
         if ( entry->nestingLevel == 0 ) { // global normal
-          fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], lhs->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
         } else { // local normal
-          fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
           fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
         }
-      } else if ( lhs->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
-        if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
-          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*lhs->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
+      } else if ( node->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
+        if ( node->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
+          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
         } else { // local array
-          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
       } else {
-        fprintf(stderr, "[gen_assignStmt] receive bad lhs SemanticValueKind\n");
+        fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
         exit(1);
       }
     }
   }
-  reg.status = FREE;
+  regTable[regIndex].status = FREE;
 }
 
 void gen_stmt(AST_NODE* stmtNode)
