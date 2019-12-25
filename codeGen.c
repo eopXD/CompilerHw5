@@ -326,7 +326,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 	int rd;
 	fprintf(write_file, "li %s, 0\n", regName[rt]);
 	for ( int i=0; i<arrayProp.dimension; ++i ) {
-		rd = gen_int_expr(dimNode); // tmp
+		rd = get_int_reg(dimNode); // tmp
 		int sz = (i == arrayProp.dimension-1) ? 4 : arrayProp.sizeInEachDimension[i];
 		fprintf(write_file, "add, %s, %s, %s", regName[rt], regName[rt], regName[rd]);
 		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
