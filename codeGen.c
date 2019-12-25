@@ -10,6 +10,8 @@
 #define DIRTY 1
 #define CLEAN 0
 #define FREE -1
+#define REG_FT0 32
+#define REG_T0 5
 
 int label_no = 0;
 FILE *write_file;
@@ -37,7 +39,7 @@ int useRegList[64] = {
     1, 1, 1, 1, 1,
     0, 0, 0, 1, 0,
     1, 1, 1, 1, 1,  
-    1, 1, 1, 0, 0,
+    1, 1, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
@@ -503,9 +505,9 @@ int gen_expr ( AST_NODE *exprNode ) {
 	} else if ( exprNode->nodeType == STMT_NODE ) { // solve statement
 		gen_func(exprNode);
 		if ( exprNode->dataType == INT_TYPE ) {
-			rs = 5;// t0
+			rs = REG_T0;// t0
 		} else if ( exprNode->dataType == FLOAT_TYPE ) {
-			rs = 17;//ft0
+			rs = REG_FT0;//ft0
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
     if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
@@ -738,12 +740,12 @@ void gen_func ( AST_NODE *funcNode ) {
 
 	if ( strcmp(func_name, "read") == 0 ) { // int read
     fprintf(stderr, "[gen_func] read\n");
-    free_reg(5);
+    free_reg(REG_T0);
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
     fprintf(stderr, "[gen_func] fread\n");
-    free_reg(17);
+    free_reg(REG_FT0);
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
@@ -761,7 +763,7 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-      free_reg(5);
+      free_reg(REG_T0);
       char str[256] = {};
       strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
       str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
