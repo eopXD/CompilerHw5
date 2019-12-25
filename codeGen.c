@@ -357,7 +357,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 }
 // expression returns register for use
 int gen_expr ( AST_NODE *exprNode ) {
-	fprintf(stderr, "XD\n");
+	fprintf(stderr, "[gen_expr] start\n");
 
 // results put into 'rs'
 	int rs, rt;
