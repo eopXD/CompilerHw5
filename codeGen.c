@@ -78,12 +78,14 @@ int in_reg(AST_NODE* node)
       }
       return -1;
     }else if(node->nodeType == CONST_VALUE_NODE){
-      for(int i = 0; i < REGISTER_NUM; i++){
+      if ( node->semantic_value.const1->const_type == INTEGERC ) { // const float
+		for(int i = 0; i < REGISTER_NUM; i++){
           // TODO find the const table 
           if(regTable[i].kind == CONST_KIND && regTable[i].node == node){
               return i;
           }
-      }
+        }
+	  }
     }
     return -1;
 }
@@ -328,6 +330,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 	char str[256] = {};
 
 	if ( exprNode->nodeType == CONST_VALUE_NODE ) { // constant value
+		fprintf(stderr, "[gen_expr] CONST_VALUE_NODE\n");
 		if ( exprNode->semantic_value.const1->const_type == INTEGERC ) { // const integer
 			if ( (rs=in_reg(exprNode)) < 0 ) {
 				rs = get_reg(exprNode);
@@ -339,20 +342,26 @@ int gen_expr ( AST_NODE *exprNode ) {
 				++constant_value_counter;
 			}
 		} else if ( exprNode->semantic_value.const1->const_type == FLOATC ) { // const float
+			fprintf(stderr, "CONST_VALUE_NODE: FLOATC\n");
 			if ( (rs=in_reg(exprNode)) < 0 ) {
+				fprintf(stderr, "value is not in reg\n");
 				uf.f = exprNode->semantic_value.const1->const_u.fval;
 				rs = get_reg(exprNode);
 				rt = get_reg(exprNode);
+				fprintf(stderr, "get reg for rs and rt\n");
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
 				fprintf(write_file, ".word %u\n", uf.u);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
-				fprintf(write_file, "lui %s, \%hi(_CONSTANT_%d)\n", regName[rt], constant_value_counter);
-				fprintf(write_file, "flw %s, \%\l\o(_CONSTANT_%d)(%s)\n", regName[rs], constant_value_counter, rt);
+				fprintf(write_file, "lui %s, \%", regName[rt]);
+				fprintf(write_file, "hi(_CONSTANT_%d)\n", constant_value_counter);
+				fprintf(write_file, "flw %s, \%", regName[rs]);
+				fprintf(write_file, "lo(_CONSTANT_%d)(%s)\n", constant_value_counter, regName[rt]);
 				++constant_value_counter;
 			}
 			free_reg(rt);
+			fprintf(stderr, "free reg for rt\n");
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs = in_reg(exprNode)) < 0 ) {
 				rs = get_reg(exprNode);
@@ -373,6 +382,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			exit(1);
 		}
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
+		fprintf(stderr, "[gen_expr] EXPR_NODE\n");
 		if( exprNode->semantic_value.exprSemanticValue.isConstEval && exprNode->dataType == INT_TYPE ) {
 			rs = get_reg(exprNode);
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
