@@ -184,33 +184,38 @@ int get_int_reg(AST_NODE* node)
       return -1;
   }
 
-void free_reg(int regIndex)
-{
-    RegTable reg = regTable[regIndex];
-    if(reg.status == DIRTY){
-        if(reg.node->nodeType == IDENTIFIER_NODE){
-            SymbolTableEntry* entry = get_entry(reg.node);
-           if(reg.node->dataType == INT_TYPE){
-              if(get_entry(reg.node)->nestingLevel == 0){
-                  int rt = get_int_reg(reg.node);
-                  fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
-                  fprintf(write_file, "sw %s, 0(%s)\n", regName[regIndex], regName[rt]);
-              }
-              fprintf(write_file, "sw %s, -%d(fp)\n", regName[regIndex], entry->offset);
-          }else if(reg.node->dataType == FLOAT_TYPE){
-              if(get_entry(reg.node)->nestingLevel == 0){
-                  int rt = get_int_reg(reg.node);
-                  fprintf(write_file, "la %s, _g_%s\n", regName[rt], reg.node->semantic_value.identifierSemanticValue.identifierName);
-                  fprintf(write_file, "fsw %s, 0(%s)\n", regName[regIndex], regName[rt]);
-              }
-              fprintf(write_file, "fsw %s, -%d(fp)\n", regName[regIndex], entry->offset);
-
-          }
-
-            reg.status = FREE;
+void free_reg ( int regIndex ) {
+  char *float_or_not; 
+  RegTable &reg = regTable[regIndex];
+  int addr_reg;
+  if ( reg.status == DIRTY ) {
+    if ( reg.node->nodeType == IDENTIFIER_NODE ) {
+      SymbolTableEntry* entry = get_entry(reg.node);
+      float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
+      addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
+      if ( reg.node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
+        if ( entry->nestingLevel == 0 ) { // global normal
+          fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], lhs->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
+        } else { // local normal
+          fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
         }
+      } else if ( lhs->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
+        if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
+          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*lhs->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
+        } else { // local array
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+        }
+      } else {
+        fprintf(stderr, "[gen_assignStmt] receive bad lhs SemanticValueKind\n");
+        exit(1);
+      }
     }
-    regTable[regIndex].status = FREE;
+  }
+  reg.status = FREE;
 }
 
 void gen_stmt(AST_NODE* stmtNode)
@@ -230,7 +235,7 @@ void gen_stmt(AST_NODE* stmtNode)
                       gen_whileStmt(stmtNode);
                       break;
                   case FOR_STMT:
-                      printf("QQQQ\n NO FOR\n");
+                      printf("[gen_stmt] FOR_STMT is not yet implemented\n");
                       break;
                   case ASSIGN_STMT:
                       gen_assignStmt(stmtNode);
@@ -244,7 +249,7 @@ void gen_stmt(AST_NODE* stmtNode)
                       gen_ifStmt(stmtNode);
                       break;
                   default:
-                      printf("QQQQQ\n ERROR\n");
+                      printf("[gen_stmt] recieve unknown stmtNode ERROR\n");
                       break;
               }
           }
@@ -253,41 +258,10 @@ void gen_stmt(AST_NODE* stmtNode)
 
 void gen_assignStmt(AST_NODE* assignNode)
 {   
-  char *float_or_not = (assignNode->dataType == INT_TYPE) ? "" : "f";;
   AST_NODE *lhs = assignNode->child;
-  int lhs_addr_reg = get_int_reg(assignNode);
   int rhs_reg = gen_expr(lhs->rightSibling); // acquire rhs as register
-
-  if ( lhs->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // noraml var
-
-    if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global normal
-      fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[lhs_addr_reg], lhs->semantic_value.identifierSemanticValue.identifierName);
-/* do your Register Tracking Here */
-      fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[rhs_reg], regName[lhs_addr_reg]); // stores rhs to memory
-/*================================*/
-    } else { // local normal
-      fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[lhs_addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-/* do your Register Tracking here */
-      fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[rhs_reg], regName[lhs_addr_reg]);    
-/*================================*/
-    }
-  } else if ( lhs->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
-    if ( lhs->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
-      fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
-      fprintf(write_file, "addi %s, %%lo(_g_%s)\n", regName[lhs_addr_reg], assignNode->semantic_value.identifierSemanticValue.identifierName);
-/* do your Register Tracking here */
-      fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[lhs_addr_reg], 4*lhs->child->semantic_value.const1->const_u.intval, regName[lhs_addr_reg]);
-/*================================*/
-    } else { // local array
-/* do your Register Tracking here */
-      fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[lhs_addr_reg], 4*assignNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-/*================================*/
-    }
-  } else {
-    fprintf(stderr, "[gen_assignStmt] receive bad lhs SemanticValueKind\n");
-    exit(1);
-  }
-  free_reg(rhs_reg);
+  store_reg(lhs, rhs_reg);
+  regTable[rhs_reg].status = DIRTY;
 }
 
 void gen_returnStmt(AST_NODE* returnNode)
