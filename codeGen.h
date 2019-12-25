@@ -36,9 +36,8 @@ SymbolTableEntry* get_entry(AST_NODE* node);
 // reg related
 int get_reg( AST_NODE* node);  // get the free register
 int in_reg ( AST_NODE* node); // check if node already inside register
-char* get_int_reg ();
-char* get_addr_reg ();
-char* get_float_reg ();
+int get_int_reg (AST_NODE* node);
+int get_float_reg (AST_NODE* node);
 
 void free_reg(int reg); // free the unused reg
 
