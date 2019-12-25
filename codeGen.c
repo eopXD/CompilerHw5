@@ -498,6 +498,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 					fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
 					free_reg(rt);
 				} else { // local varaible
+					
 					fprintf(write_file, "lw %s, %d(fp)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
 				}
 			}
@@ -547,11 +548,6 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
 				TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
 				
-				// global var in test data don't have initial value
-				// TODO: fetch const_val to ival/fval
-
-
-				// TODO: confirm correct directives	
 				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
 					if ( typeNode->dataType == INT_TYPE ) {
 						fprintf(write_file, "_g_%s .DIRECTIVE %d\n", name, ival);
