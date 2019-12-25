@@ -263,7 +263,7 @@ void gen_whileStmt(AST_NODE* whileNode)
 }
 
 void codegen ( AST_NODE *program ) {
-	write_file = fopen("output.S", "w");
+	write_file = fopen("output.s", "w");
 	if ( write_file == NULL ) {
 		fprintf(stderr, "[codegen] open write file fail\n");
 		exit(1);
