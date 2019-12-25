@@ -219,9 +219,8 @@ void gen_assignStmt(AST_NODE* assignNode)
           }
           regTable[index].status = DIRTY;
       } else if(leftOp->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
-          gen_expr(rightOp); 
+          int index = gen_expr(rightOp); 
           SymbolTableEntry* entry = get_entry(leftOp);
-          int index = get_reg(rightOp);
           fprintf(write_file, "sw %s, %d(fp)", regName[index], entry->offset);
           free_reg(index);
       }
@@ -291,11 +290,11 @@ int gen_array_addr ( AST_NODE *idNode ) {
 	ArrayProperties arrayProp = 
 	 idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->properties.arrayProperties;
 	AST_NODE *dimNode = idNode->child;
-	int rs = get_reg(idNode), rt = get_reg(idNode); // result / offset
+	int rs = get_int_reg(idNode), rt = get_int_reg(idNode); // result / offset
 	int rd;
 	fprintf(write_file, "li %s, 0\n", regName[rt]);
 	for ( int i=0; i<arrayProp.dimension; ++i ) {
-		rd = gen_expr(dimNode); // tmp
+		rd = gen_int_expr(dimNode); // tmp
 		int sz = (i == arrayProp.dimension-1) ? 4 : arrayProp.sizeInEachDimension[i];
 		fprintf(write_file, "add, %s, %s, %s", regName[rt], regName[rt], regName[rd]);
 		fprintf(write_file, "li %s, %d\n", regName[rd], sz);
@@ -305,7 +304,7 @@ int gen_array_addr ( AST_NODE *idNode ) {
 	}
 
 	if ( idNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global 	
-		rd = get_reg(idNode);
+		rd = get_int_reg(idNode);
 		fprintf(write_file, "la %s, _g_%s\n", regName[rd], idNode->semantic_value.identifierSemanticValue.identifierName);
 		fprintf(write_file, "lw %s, %s(%s)\n", regName[rs], regName[rt], regName[rd]);
 		free_reg(rd);
@@ -333,7 +332,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 		fprintf(stderr, "[gen_expr] CONST_VALUE_NODE\n");
 		if ( exprNode->semantic_value.const1->const_type == INTEGERC ) { // const integer
 			if ( (rs=in_reg(exprNode)) < 0 ) {
-				rs = get_reg(exprNode);
+				rs = get_int_reg(exprNode);
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d: .word %d\n", constant_value_counter, exprNode->semantic_value.const1->const_u.intval);
 				fprintf(write_file, ".align 3\n");
@@ -346,17 +345,17 @@ int gen_expr ( AST_NODE *exprNode ) {
 			if ( (rs=in_reg(exprNode)) < 0 ) {
 				fprintf(stderr, "value is not in reg\n");
 				uf.f = exprNode->semantic_value.const1->const_u.fval;
-				rs = get_reg(exprNode);
-				rt = get_reg(exprNode);
+				rs = get_float_reg(exprNode);
+				rt = get_int_reg(exprNode);
 				fprintf(stderr, "get reg for rs and rt\n");
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
 				fprintf(write_file, ".word %u\n", uf.u);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
-				fprintf(write_file, "lui %s, \%", regName[rt]);
+				fprintf(write_file, "lui %s, %%", regName[rt]);
 				fprintf(write_file, "hi(_CONSTANT_%d)\n", constant_value_counter);
-				fprintf(write_file, "flw %s, \%", regName[rs]);
+				fprintf(write_file, "flw %s, %%", regName[rs]);
 				fprintf(write_file, "lo(_CONSTANT_%d)(%s)\n", constant_value_counter, regName[rt]);
 				++constant_value_counter;
 			}
@@ -364,7 +363,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			fprintf(stderr, "free reg for rt\n");
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs = in_reg(exprNode)) < 0 ) {
-				rs = get_reg(exprNode);
+				rs = get_int_reg(exprNode);
 				//memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
 				strncpy(str, exprNode->semantic_value.const1->const_u.sc+1, strlen(exprNode->semantic_value.const1->const_u.sc)-2);
                 str[strlen(exprNode->semantic_value.const1->const_u.sc)-1] = '\0';
@@ -384,7 +383,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
 		fprintf(stderr, "[gen_expr] EXPR_NODE\n");
 		if( exprNode->dataType == INT_TYPE ) {
-			rs = get_reg(exprNode);
+			rs = get_int_reg(exprNode);
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
@@ -455,14 +454,14 @@ int gen_expr ( AST_NODE *exprNode ) {
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
         if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
 			rt = gen_array_addr(exprNode);
-			rs = get_reg(exprNode);
+			rs = get_int_reg(exprNode);
 			fprintf(write_file, "lw %s, 0(%s)\n", regName[rs], regName[rt]);
 			free_reg(rt);
 		} else if ( exprNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) {
 			if ( (rs=in_reg(exprNode)) < 0 ) {
-				rs = get_reg(exprNode);
+				rs = get_int_reg(exprNode);
 				if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
-					rt = get_reg(exprNode);
+					rt = get_int_reg(exprNode);
 					fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
 					fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
 					free_reg(rt);
