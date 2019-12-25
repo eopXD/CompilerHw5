@@ -706,16 +706,14 @@ void gen_func ( AST_NODE *funcNode ) {
 	if ( strcmp(func_name, "read") == 0 ) { // int read
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
-		fprintf(write_file, "str t0, -4(fp)\n");
+
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
-		fprintf(write_file, "str ft0, -8(fp)\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
 		AST_NODE *paramNode = paramListNode->child;
 		int reg = gen_expr(paramNode);
 		if ( paramNode->dataType == INT_TYPE ) {
-			fprintf(write_file, "lw %s, -4(fp)\n", regName[reg]);
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_int\n");
 		}
