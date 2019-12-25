@@ -479,7 +479,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 						fprintf(write_file, "[gen_expr] unary->child has unknown datatype\n");
 					}
 				case UNARY_OP_LOGICAL_NEGATION:
-                    fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
+          fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
 					break;
 				default: break;
 			}
@@ -493,7 +493,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			rs = 17;//ft0
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
-        if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
+    if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
 			rt = gen_array_addr(exprNode);
 			rs = get_int_reg(exprNode);
 			fprintf(write_file, "lw %s, 0(%s)\n", regName[rs], regName[rt]);
@@ -563,17 +563,26 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
 			AST_NODE *typeNode = declNode->child;
 			AST_NODE *idNode = typeNode->rightSibling;
-			int ival = 0;
-			float fval = 0;
-			while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
+			int ival;
+			union ufloat fval;
+      while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
+        ival = 0;
+        fval.f = 0;
 				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
 				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
 				TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
+        if ( idNode->semantic_value.identifierSemanticValue.kind == WITH_INIT_ID ) {
+          if ( idNode->child->semantic_value.const1->const_type == FLOATC ) {
+            fval.f = idNode->child->semantic_value.const1->const_u.fval;
+          } else {
+            ival = idNode->child->semantic_value.const1->const_u.intval;
+          }
+        }
 				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
 					if ( typeNode->dataType == INT_TYPE ) {
 						fprintf(write_file, "_g_%s .word %d\n", name, ival);
 					} else if ( typeNode->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "_g_%s .word %f\n", name, fval);
+						fprintf(write_file, "_g_%s .word %u\n", name, fval);
 					} else {
 						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
 					}
@@ -588,7 +597,6 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 				idNode = idNode->rightSibling;
 			}
 		}
-
 	}
 }
 
@@ -710,10 +718,11 @@ void gen_func ( AST_NODE *funcNode ) {
 	char *func_name = idNode->semantic_value.identifierSemanticValue.identifierName;
 
 	if ( strcmp(func_name, "read") == 0 ) { // int read
+    free_reg(5);
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
-
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
+    free_reg(17);
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
@@ -728,10 +737,12 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-            char str[256] = {};
-			fprintf(write_file, ".data\n");
-            strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
-            str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+      free_reg(5);
+      char str[256] = {};
+      strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+      str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+
+      fprintf(write_file, ".data\n");
 			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
