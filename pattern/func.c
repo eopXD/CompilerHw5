@@ -10,7 +10,7 @@ void try() {
     }
 }
 
-int main() {
+int MAIN() {
     k = 0;
     try();
     return 0;

@@ -1,4 +1,4 @@
-int main() {
+int MAIN() {
     int a, b;
     float c, d;
     write("input:");

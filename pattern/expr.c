@@ -1,4 +1,4 @@
-int main() {
+int MAIN() {
     int i, j, k;
     float m, n, l;
     k = (1 + 2) * 3 - 4/5 + -1;
