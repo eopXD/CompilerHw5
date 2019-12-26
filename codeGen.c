@@ -254,7 +254,7 @@ void free_reg ( int regIndex ) {
       regTable[regIndex].status = BUSY;
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
-      //float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
+      float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
       addr_reg = reg.node->dataType == INT_TYPE ? 9 : 40;
       //addr_reg = get_addr_reg(); 
 	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
