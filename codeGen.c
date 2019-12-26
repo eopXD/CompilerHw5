@@ -632,7 +632,8 @@ int gen_expr ( AST_NODE *exprNode ) {
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[rt],regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rt]);
         } else { // local array
-          fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+            SymbolTableEntry* entry = get_entry(exprNode);
+          fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
         }
       } else {
         fprintf(stderr, "nani! the arrayNode->child is not CONST_VALUE_NODE\n");
