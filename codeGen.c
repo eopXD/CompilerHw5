@@ -474,7 +474,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 	fprintf(stderr, "[gen_expr] start\n");
 
 // results put into 'rs'
-	int rs, rt;
+	int rs, rt, rd;
 	char *float_or_not;
 
 	int ival;
@@ -568,35 +568,41 @@ int gen_expr ( AST_NODE *exprNode ) {
         }
         fprintf(write_file, "or %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
       } else { // comparing operation 
+        rd = get_int_reg(exprNode->child);
         char *comparison_op1, *comparison_op2;
         if ( bin_op(exprNode) == BINARY_OP_EQ ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sub" : "feq.s";
           comparison_op2 = (exprNode->dataType == INT_TYPE) ? "seqz" : "snez";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
-          fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rs], regName[rs]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
+          fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_NE ) {          
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sub" : "feq.s";
           comparison_op2 = (exprNode->dataType == INT_TYPE) ? "snez" : "seqz";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
-          fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rs], regName[rs]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
+          fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_GE ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
-          fprintf(write_file, "xori %s, %s, 1\n", regName[rs], regName[rs]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
+          fprintf(write_file, "xori %s, %s, 1\n", regName[rd], regName[rd]);
 
         } else if ( bin_op(exprNode) == BINARY_OP_LE ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sgt" : "fgt.s";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
-          fprintf(write_file, "xori %s, %s, 1\n", regName[rs], regName[rs]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
+          fprintf(write_file, "xori %s, %s, 1\n", regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_GT ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sgt" : "fgt.s";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
         } else if ( bin_op(exprNode) == BINARY_OP_LT ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
-          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rs], regName[rs], regName[rt]);
+          fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
         } 
       }
 #undef bin_op
+/* swap rs and rd */
+      int tmp = rs;
+      rs = rd;
+      rd = tmp;
+/* swap rs and rd */
 			free_reg(rt);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
