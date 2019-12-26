@@ -231,7 +231,7 @@ void free_reg ( int regIndex ) {
       //float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
       //addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
       addr_reg = get_addr_reg(); 
-	  fprintf(write_file, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
+	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
         if ( entry->nestingLevel == 0 ) { // global normal
@@ -558,7 +558,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       if ( exprNode->dataType == INT_TYPE ) {
         rs = get_int_reg(exprNode);
       } else if ( exprNode->dataType == FLOAT_TYPE ) {
-        rs = get_int_reg(exprNode);
+        rs = get_float_reg(exprNode);
       } else {
         fprintf(stderr, "[gen_expr] IDENTIFIER_NODE - recieve unknown dataType exprNode\n");
         exit(1);
@@ -810,7 +810,7 @@ void gen_func ( AST_NODE *funcNode ) {
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
 	        reg = gen_expr(paramNode);
-            fprintf(stderr, "[gen_func] write float\n");
+            fprintf(stderr, "[gen_func] write float %d\n", reg);
       fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
