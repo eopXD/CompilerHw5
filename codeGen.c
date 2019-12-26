@@ -34,12 +34,26 @@ char regName[64][8] = {
     "fs7", "fs8", "fs9", "fs10", "fs11",
     "ft8", "ft9", "ft10", "ft11"
 };
-
+int caller_save_list[64]={
+    0, 1, 0, 0, 0,
+    1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1,
+    1, 1, 1, 1, 1,
+    0, 0, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0
+};
 int useRegList[64] = { 
     1, 1, 1, 1, 1,
     0, 0, 0, 1, 1,
     1, 1, 1, 1, 1,  
-    1, 1, 0, 0, 0,
+    1, 1, 1, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
@@ -77,7 +91,7 @@ int in_reg(AST_NODE* node)
           return -1;
       }
       for(int i = 0; i < REGISTER_NUM; i++){
-          if(regTable[i].kind == VARIABLE_KIND){
+          if(regTable[i].kind == VARIABLE_KIND && regTable[i].status != FREE){
               SymbolTableEntry* tmp = get_entry(regTable[i].node);
     //          printf("%s %s\n", entry->name,tmp->name);
               if(!strcmp(entry->name, tmp->name)){
@@ -250,7 +264,7 @@ void free_reg ( int regIndex ) {
   RegTable reg = regTable[regIndex];
   int addr_reg;
   if ( reg.status == DIRTY ) {
-    if ( reg.node->nodeType == IDENTIFIER_NODE ) {
+    if ( reg.kind == VARIABLE_KIND && reg.node->nodeType == IDENTIFIER_NODE ) {
       regTable[regIndex].status = BUSY;
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
@@ -284,7 +298,9 @@ void free_reg ( int regIndex ) {
               printf("QQQQ\n");
               exit(0);
           }
-          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          AST_NODE *dimListNode = reg.node->child;
+            SymbolTableEntry* entry = get_entry(reg.node);
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
         }
       } else {
         fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
@@ -292,6 +308,7 @@ void free_reg ( int regIndex ) {
       }
     }
   }
+  regTable[regIndex].node = NULL;
   regTable[regIndex].status = FREE;
 }
 
@@ -342,7 +359,7 @@ void gen_assignStmt(AST_NODE* assignNode)
   regTable[rhs_reg].status = DIRTY;
   if(lhs->nodeType == IDENTIFIER_NODE){
       SymbolTableEntry* entry = get_entry(lhs);
-      if(entry->nestingLevel == 0){
+      if(entry->nestingLevel == 0 || lhs->semantic_value.identifierSemanticValue.kind == ARRAY_ID){
           free_reg(rhs_reg);
       }
   }
@@ -617,7 +634,8 @@ int gen_expr ( AST_NODE *exprNode ) {
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[rt],regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rt]);
         } else { // local array
-          fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+            SymbolTableEntry* entry = get_entry(exprNode);
+          fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
         }
       } else {
         fprintf(stderr, "nani! the arrayNode->child is not CONST_VALUE_NODE\n");
@@ -725,6 +743,15 @@ void gen_prologue ( char *func_name ) {
 	fprintf(write_file, "sub sp,sp,ra\n");
 }
 
+void caller_save() {
+    for(int i = 0; i < REGISTER_NUM; i++){
+        if(caller_save_list[i]){
+            free_reg(i);
+        }
+    }
+    return ;
+
+}
 void callee_save () {
 	fprintf(write_file, "sd t0,8(sp)\n");
 	fprintf(write_file, "sd t1,16(sp)\n");
@@ -853,31 +880,34 @@ void gen_func ( AST_NODE *funcNode ) {
             reg = gen_expr(paramNode);
             fprintf(stderr, "[gen_func] write int\n");
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
+            caller_save();
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
 	        reg = gen_expr(paramNode);
             fprintf(stderr, "[gen_func] write float %d\n", reg);
             fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
+            caller_save();
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-      free_reg(REG_T0);
-      char str[256] = {};
-      strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
-      str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+          free_reg(REG_T0);
+          char str[256] = {};
+          strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+          str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
 
-      fprintf(write_file, ".data\n");
+          fprintf(write_file, ".data\n");
 			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
 			fprintf(write_file, "mv a0, t0\n");
+            caller_save();
 			fprintf(write_file, "jal _write_str\n");
 			++constant_value_counter;
 		}
 	} else { // normal function
-		fprintf(write_file, "jal jal _start_%s\n", func_name);
+		fprintf(write_file, "jal _start_%s\n", func_name);
 	}
 }
 
