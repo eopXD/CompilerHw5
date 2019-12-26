@@ -724,6 +724,7 @@ void gen_prologue ( char *func_name ) {
 	fprintf(write_file, "lw ra,0(ra)\n");
 	fprintf(write_file, "sub sp,sp,ra\n");
 }
+
 void callee_save () {
 	fprintf(write_file, "sd t0,8(sp)\n");
 	fprintf(write_file, "sd t1,16(sp)\n");
@@ -938,13 +939,8 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 					sz *= arrayProp.sizeInEachDimension[i];
 				}
 				offset += sz;
-			}/* else if(idNode->dataType == INT_TYPE){
-				offset += 4;
-			} else if(idNode->dataType == FLOAT_TYPE){
-				offset += 8;
-            }*/
-            else{
-                offset += 8;
+			}else{
+                offset += 4;
             }
 			sym->offset = offset;
 			idNode = idNode->rightSibling;
