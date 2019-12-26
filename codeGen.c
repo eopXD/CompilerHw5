@@ -13,6 +13,8 @@
 #define BUSY -2
 #define REG_FT0 32
 #define REG_T0 5
+#define REG_S1 9 
+#define FLOAT_REG_BEGIN 32
 int label_no = 0;
 FILE *write_file;
 int constant_value_counter = 0; // for constant allocation
@@ -73,9 +75,9 @@ void copy_reg(RegTable a[], RegTable b[]){
 }
 SymbolTableEntry* get_entry(AST_NODE* node)
 {
-   // retrieveSymbol(node->semantic_value.identifierSemanticValue.identifierName);
     return node->semantic_value.identifierSemanticValue.symbolTableEntry;
 }
+
 char* get_name(AST_NODE* node)
 {
      return node->semantic_value.identifierSemanticValue.identifierName;
@@ -86,14 +88,12 @@ int in_reg(AST_NODE* node)
     if(node->nodeType == IDENTIFIER_NODE && node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
       SymbolTableEntry* entry = get_entry(node);
       char*name = get_name(node);
-      //printf("QQ, %s\n", name);
       if(entry->nestingLevel == 0){
           return -1;
       }
       for(int i = 0; i < REGISTER_NUM; i++){
           if(regTable[i].kind == VARIABLE_KIND && regTable[i].status != FREE){
               SymbolTableEntry* tmp = get_entry(regTable[i].node);
-    //          printf("%s %s\n", entry->name,tmp->name);
               if(!strcmp(entry->name, tmp->name)){
                   return i;
               }
@@ -103,7 +103,6 @@ int in_reg(AST_NODE* node)
     }else if(node->nodeType == CONST_VALUE_NODE){
       if ( node->semantic_value.const1->const_type == INTEGERC ) { // const float
 		for(int i = 0; i < REGISTER_NUM; i++){
-          // TODO find the const table 
           if(regTable[i].kind == CONST_KIND && regTable[i].node == node){
               return i;
           }
@@ -151,24 +150,21 @@ int get_float_reg(AST_NODE* node)
           return index;
       }
       
-      for(int i = 32; i < REGISTER_NUM; i++){
-          if(regTable[i].status == FREE){
-              fprintf(stderr, "get free\n");
+      for(int i = FLOAT_REG_BEGIN; i < REGISTER_NUM; i++){
+          if(regTable[i].status == FREE){ // get the free register
               store_reg(node, i);
               return i;
           }
       }
-      for(int i = 32; i < REGISTER_NUM; i++){
-          if(regTable[i].status == CLEAN){
-              fprintf(stderr, "get clean\n");
+      for(int i = FLOAT_REG_BEGIN; i < REGISTER_NUM; i++){
+          if(regTable[i].status == CLEAN){// get the clean register
               free_reg(i);
               store_reg(node, i);
               return i;
           }
       }
-      for(int i = 32; i < REGISTER_NUM; i++){
+      for(int i = FLOAT_REG_BEGIN; i < REGISTER_NUM; i++){ // get dirty register and only variable could be store don't kill the temporaries
           if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
-              //fprintf(stderr, "get dirty\n");
               free_reg(i);
               store_reg(node, i);
               return i;
@@ -177,100 +173,47 @@ int get_float_reg(AST_NODE* node)
       return -1;
 }
 
-int get_int_add_reg()
-{
-      int index = -1;
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == FREE){
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == CLEAN){
-              free_reg(i);
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
-              free_reg(i);
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      return -1;
-}
-
-int get_float_add_reg()
-{
-      int index = -1;
-      for(int i = 32; i < REGISTER_NUM; i++){
-          if(regTable[i].status == FREE){
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      for(int i = 32; i < REGISTER_NUM; i++){
-          if(regTable[i].status == CLEAN){
-              free_reg(i);
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      for(int i = 32; i < REGISTER_NUM; i++){
-          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
-    //          printf("%d %d\n",i,  regTable[i].status);
-              free_reg(i);
-              store_reg(NULL, i);
-              return i;
-          }
-      }
-      return -1;
-}
 int get_int_reg(AST_NODE* node)
-  {
-      int index = in_reg(node);
-      if(index > 0){
-          return index;
-      }
-      
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == FREE){
-              store_reg(node, i);
-              return i;
-          }
-      }
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == CLEAN){
-              free_reg(i);
-              store_reg(node, i);
-              return i;
-          }
-      }
-      for(int i = 0; i < 32; i++){
-          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
-              free_reg(i);
-              store_reg(node, i);
-              return i;
-          }
-      }
-      return -1;
-  }
+{
+    int index = in_reg(node);
+    if(index > 0){
+        return index;
+    }
+
+    for(int i = 0; i < FLOAT_REG_BEGIN; i++){
+        if(regTable[i].status == FREE){
+        store_reg(node, i);
+        return i;
+        }
+    }
+    for(int i = 0; i < FLOAT_REG_BEGIN; i++){
+        if(regTable[i].status == CLEAN){
+            free_reg(i);
+            store_reg(node, i);
+            return i;
+        }
+    }
+    for(int i = 0; i < FLOAT_REG_BEGIN; i++){
+        if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+            free_reg(i);
+            store_reg(node, i);
+            return i;
+        }
+    }
+    return -1;
+}
 
 void free_reg ( int regIndex ) {
   char *float_or_not; 
   RegTable reg = regTable[regIndex];
   int addr_reg;
   if ( reg.status == DIRTY ) {
-    if ( reg.kind == VARIABLE_KIND && reg.node->nodeType == IDENTIFIER_NODE ) {
-      regTable[regIndex].status = BUSY;
+    if ( reg.kind == VARIABLE_KIND && reg.node->nodeType == IDENTIFIER_NODE ) {  //only variale could be store
+      regTable[regIndex].status = BUSY; // protect the reg to be get again
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
-      //addr_reg = reg.node->dataType == INT_TYPE ? 9 : 40;
-      addr_reg = 9; 
+      addr_reg = REG_S1; 
 	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
@@ -279,13 +222,6 @@ void free_reg ( int regIndex ) {
           fprintf(write_file, "la %s, _g_%s\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, 0(%s)\n", float_or_not, regName[regIndex], regName[addr_reg]);
         } else { // local normal
-            //TODO local no need to ?
-          //fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-          //fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
-          if(!strcmp(float_or_not,"f")&& regIndex < 32){
-              printf("QQQQ\n");
-              exit(0);
-          }
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
       } else if ( node->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
@@ -294,18 +230,14 @@ void free_reg ( int regIndex ) {
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
         } else { // local array
-          if(!strcmp(float_or_not,"f")&& regIndex < 32){
-              printf("QQQQ\n");
-              exit(0);
-          }
-          AST_NODE *dimListNode = reg.node->child;
+            AST_NODE *dimListNode = reg.node->child;
             SymbolTableEntry* entry = get_entry(reg.node);
-          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
+            fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
         }
-      } else {
-        fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
-        exit(1);
-      }
+        } else {
+            fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
+            exit(1);
+        }
     }
   }
   regTable[regIndex].node = NULL;
@@ -489,7 +421,6 @@ int gen_expr ( AST_NODE *exprNode ) {
 		if ( exprNode->semantic_value.const1->const_type == INTEGERC ) { // const integer
 			if ( (rs=in_reg(exprNode)) < 0 ) {
 				rs = get_int_reg(exprNode);
-                //int rt = 9;
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d: .word %d\n", constant_value_counter, exprNode->semantic_value.const1->const_u.intval);
 				fprintf(write_file, ".align 3\n");
@@ -522,12 +453,11 @@ int gen_expr ( AST_NODE *exprNode ) {
 		} else if ( exprNode->semantic_value.const1->const_type == STRINGC ) { // const string
 			if ( (rs = in_reg(exprNode)) < 0 ) {
 				rs = get_int_reg(exprNode);
-				//memcpy(str, exprNode->semantic_value.const1->const_u.sc, strlen(exprNode->semantic_value.const1->const_u.sc));
+                // because the string is "hello" need to cost the " in the front and button
 				strncpy(str, exprNode->semantic_value.const1->const_u.sc+1, strlen(exprNode->semantic_value.const1->const_u.sc)-2);
                 str[strlen(exprNode->semantic_value.const1->const_u.sc)-1] = '\0';
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
-                //printf("%s\n", str);
 				fprintf(write_file, ".ascii \"%s\\000\"\n", str);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
@@ -668,8 +598,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       AST_NODE *dimListNode = exprNode->child;
       if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
         if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global arrays
-          int rt = 9; 
-          //fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          int rt = REG_S1; 
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[rt],regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rt]);
@@ -732,44 +661,44 @@ void gen_global_varDecl ( AST_NODE *varDeclDimList ) {
 	fprintf(write_file, ".data\n");
 	AST_NODE *declNode = varDeclDimList->child;
 	FOR_ALL_CHILD(varDeclDimList, declNode) {
-		if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
-			AST_NODE *typeNode = declNode->child;
-			AST_NODE *idNode = typeNode->rightSibling;
-			int ival;
-			union ufloat fval;
-      while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
-        ival = 0;
-        fval.f = 0;
-				SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
-				char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
-				TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
-        if ( idNode->semantic_value.identifierSemanticValue.kind == WITH_INIT_ID ) {
-          if ( idNode->child->semantic_value.const1->const_type == FLOATC ) {
-            fval.f = idNode->child->semantic_value.const1->const_u.fval;
-          } else {
-            ival = idNode->child->semantic_value.const1->const_u.intval;
-          }
+    if ( declNode->semantic_value.declSemanticValue.kind == VARIABLE_DECL ) {
+        AST_NODE *typeNode = declNode->child;
+        AST_NODE *idNode = typeNode->rightSibling;
+        int ival;
+        union ufloat fval;
+        while ( idNode != NULL ) { // don't need to worry about char[] allocation (not in test input)
+            ival = 0;
+            fval.f = 0;
+		    SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
+			char *name = idNode->semantic_value.identifierSemanticValue.identifierName;
+			TypeDescriptor* typeDesc = sym->attribute->attr.typeDescriptor;
+            if ( idNode->semantic_value.identifierSemanticValue.kind == WITH_INIT_ID ) {
+                if ( idNode->child->semantic_value.const1->const_type == FLOATC ) {
+                    fval.f = idNode->child->semantic_value.const1->const_u.fval;
+                } else {
+                ival = idNode->child->semantic_value.const1->const_u.intval;
+                }
+            }
+            if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
+                if ( typeNode->dataType == INT_TYPE ) {
+                    fprintf(write_file, "_g_%s: .word %d\n", name, ival);
+                } else if ( typeNode->dataType == FLOAT_TYPE ) {
+                    fprintf(write_file, "_g_%s: .word %u\n", name, fval.u);
+                } else {
+                    fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
+                }
+			} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
+                int sz = 4;
+                ArrayProperties arrayProp = typeDesc->properties.arrayProperties;
+                for ( int i=0; i<arrayProp.dimension; ++i ) {
+                    sz *= arrayProp.sizeInEachDimension[i];
+                }
+                fprintf(write_file, "_g_%s: .zero %d\n", name, sz);
+            }
+            idNode = idNode->rightSibling;
         }
-				if ( typeDesc->kind == SCALAR_TYPE_DESCRIPTOR ) {
-					if ( typeNode->dataType == INT_TYPE ) {
-						fprintf(write_file, "_g_%s: .word %d\n", name, ival);
-					} else if ( typeNode->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "_g_%s: .word %u\n", name, fval.u);
-					} else {
-						fprintf(stderr, "[warning] recieve global declaration node neither INT_TYPE nor FLOAT_TYPE\n");
-					}
-				} else if ( typeDesc->kind == ARRAY_TYPE_DESCRIPTOR ) {
-					int sz = 4;
-					ArrayProperties arrayProp = typeDesc->properties.arrayProperties;
-					for ( int i=0; i<arrayProp.dimension; ++i ) {
-						sz *= arrayProp.sizeInEachDimension[i];
-					}
-					fprintf(write_file, "_g_%s: .zero %d\n", name, sz);
-				}
-				idNode = idNode->rightSibling;
-			}
-		}
-	}
+    }
+    }
 }
 
 /* function related */ 
@@ -904,17 +833,17 @@ void gen_func ( AST_NODE *funcNode ) {
 
 	if ( strcmp(func_name, "read") == 0 ) { // int read
     fprintf(stderr, "[gen_func] read\n");
-    free_reg(REG_T0);
+        free_reg(REG_T0);
 		fprintf(write_file, "call _read_int\n");
 		fprintf(write_file, "mv t0, a0\n");
 	} else if ( strcmp(func_name, "fread") == 0 ) { // float read
-    fprintf(stderr, "[gen_func] fread\n");
-    free_reg(REG_FT0);
+        fprintf(stderr, "[gen_func] fread\n");
+        free_reg(REG_FT0);
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
 		fprintf(stderr, "[gen_func] write\n"); 
-    AST_NODE *paramNode = paramListNode->child;
+        AST_NODE *paramNode = paramListNode->child;
 		int reg;
 		if ( paramNode->dataType == INT_TYPE ) {
             reg = gen_expr(paramNode);
@@ -931,13 +860,13 @@ void gen_func ( AST_NODE *funcNode ) {
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-          free_reg(REG_T0);
-          char str[256] = {};
-          strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
-          str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+            free_reg(REG_T0);
+            char str[256] = {};
+            strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+            str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
 
-          fprintf(write_file, ".data\n");
-			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
+            fprintf(write_file, ".data\n");
+            fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
@@ -978,7 +907,6 @@ int gen_offset ( AST_NODE *node, int offset ) {
 		 retrieveSymbol(idNode->semantic_value.identifierSemanticValue.identifierName);
         //AST_NODE* blocknode = idNode->rightSibling->rightSibling; 
         //SymbolTableEntry* entry = get_entry(blocknode);
-        printf("offset %d\n", offset);
 		idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
 	}
 	return (offset);
@@ -1011,8 +939,6 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 					sz *= arrayProp.sizeInEachDimension[i];
 				}
 				fprintf(stderr, "[block_offset] array of size %d, ", sz);
-				// int/float takes 4 byte (single word), not doing double word here
-				//sz *= (sym->attribute->attr.typeDescriptor->properties.dataType == INT_TYPE) ? 4 : 4;
 				sz *= 4;
 				offset += sz;
 				fprintf(stderr, "idNode %s: %d\n", 
