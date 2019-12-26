@@ -383,7 +383,7 @@ void gen_ifStmt(AST_NODE* ifNode)
       if(elseBodyNode == NULL){
           fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
           gen_stmt(ifBodyNode);
-          fprintf(write_file, "_Lexit%d\n", local_label_number);
+          fprintf(write_file, "_Lexit%d:\n", local_label_number);
   
       }else{
           fprintf(write_file, "beqz %s, _Lelse%d  \n", regName[index], local_label_number);
@@ -391,7 +391,7 @@ void gen_ifStmt(AST_NODE* ifNode)
           fprintf(write_file, "j _Lexit%d\n", local_label_number);
           fprintf(write_file, "_Lelse%d:\n", local_label_number);
           gen_stmt(elseBodyNode);
-          fprintf(write_file, " _Lexit%d\n", local_label_number);
+          fprintf(write_file, " _Lexit%d:\n", local_label_number);
       }
 }
 
@@ -404,7 +404,7 @@ void gen_whileStmt(AST_NODE* whileNode)
     fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
     gen_stmt(boolExpression->rightSibling);
     fprintf(write_file, "j _Test%d\n", local_label_number);
-    fprintf(write_file, "_Lexit%d\n", local_label_number);
+    fprintf(write_file, "_Lexit%d:\n", local_label_number);
 }
 void codegen ( AST_NODE *program ) {
 	write_file = fopen("output.s", "w");
@@ -560,6 +560,8 @@ int gen_expr ( AST_NODE *exprNode ) {
 					fprintf(write_file, "%s and %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
 				case BINARY_OP_OR: 
                     	fprintf(write_file, "%sor %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]); break;
+
+// BUG: comparing operation
 				case BINARY_OP_EQ:
 					fprintf(write_file, "sub %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
 					fprintf(write_file, "seqz %s, %s\n", regName[rs], regName[rs]); break;
