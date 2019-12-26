@@ -907,7 +907,7 @@ void gen_func ( AST_NODE *funcNode ) {
 			++constant_value_counter;
 		}
 	} else { // normal function
-		fprintf(write_file, "jal jal _start_%s\n", func_name);
+		fprintf(write_file, "jal _start_%s\n", func_name);
 	}
 }
 
