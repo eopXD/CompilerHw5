@@ -622,14 +622,14 @@ int gen_expr ( AST_NODE *exprNode ) {
         if ( exprNode->dataType == INT_TYPE ) {
           rs = get_int_reg(exprNode);
         } else if ( exprNode->dataType == FLOAT_TYPE ) {
-          rs = get_int_reg(exprNode);
+          rs = get_float_reg(exprNode);
         } else {
           fprintf(stderr, "[gen_expr] IDENTIFIER_NODE - recieve unknown dataType exprNode\n");
           exit(1);
         }
         rt = get_int_reg(exprNode);
         if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
-            fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+            fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
             fprintf(write_file, "%slw %s, %s\n", float_or_not, regName[rs], regName[rt]);
             free_reg(rt);
         } else { // local varaible
