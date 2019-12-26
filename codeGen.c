@@ -476,6 +476,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 // results put into 'rs'
 	int rs, rt;
 	char *float_or_not;
+	char *float_or_not2;
 
 	int ival;
 	float fval;
@@ -544,17 +545,18 @@ int gen_expr ( AST_NODE *exprNode ) {
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
+			float_or_not2 = exprNode->dataType == INT_TYPE ? "" : ".s";
 			rs = gen_expr(exprNode->child);
 			rt = gen_expr(exprNode->child->rightSibling);
 #define bin_op(node) node->semantic_value.exprSemanticValue.op.binaryOp
       if ( bin_op(exprNode) == BINARY_OP_ADD ) {
 				fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_SUB ) {
-        fprintf(write_file, "%ssub %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%ssub%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_MUL ) {
-        fprintf(write_file, "%smul %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%smul%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_DIV ) {
-        fprintf(write_file, "%sdiv %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%sdiv%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_AND ) {
         if ( exprNode->dataType == FLOAT_TYPE ) {
           fprintf(stderr, "[gen_expr] exprNode BINARY_OP_AND is FLOAT_TYPE\n");
