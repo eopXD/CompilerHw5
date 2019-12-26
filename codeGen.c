@@ -936,9 +936,14 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 					sz *= arrayProp.sizeInEachDimension[i];
 				}
 				offset += sz;
-			} else {
+			}/* else if(idNode->dataType == INT_TYPE){
 				offset += 4;
-			}
+			} else if(idNode->dataType == FLOAT_TYPE){
+				offset += 8;
+            }*/
+            else{
+                offset += 8;
+            }
 			sym->offset = offset;
 			idNode = idNode->rightSibling;
 		}
