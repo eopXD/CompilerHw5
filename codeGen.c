@@ -34,7 +34,21 @@ char regName[64][8] = {
     "fs7", "fs8", "fs9", "fs10", "fs11",
     "ft8", "ft9", "ft10", "ft11"
 };
-
+int caller_save_list[64]={
+    0, 1, 0, 0, 0,
+    1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1,
+    1, 1, 1, 1, 1,
+    0, 0, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0
+};
 int useRegList[64] = { 
     1, 1, 1, 1, 1,
     0, 0, 0, 1, 1,
@@ -725,6 +739,15 @@ void gen_prologue ( char *func_name ) {
 	fprintf(write_file, "sub sp,sp,ra\n");
 }
 
+void caller_save() {
+    for(int i = 0; i < REGISTER_NUM; i++){
+        if(caller_save_list[i]){
+            free_reg(i);
+        }
+    }
+    return ;
+
+}
 void callee_save () {
 	fprintf(write_file, "sd t0,8(sp)\n");
 	fprintf(write_file, "sd t1,16(sp)\n");
@@ -853,26 +876,29 @@ void gen_func ( AST_NODE *funcNode ) {
             reg = gen_expr(paramNode);
             fprintf(stderr, "[gen_func] write int\n");
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
+            caller_save();
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
 	        reg = gen_expr(paramNode);
             fprintf(stderr, "[gen_func] write float %d\n", reg);
             fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
+            caller_save();
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-      free_reg(REG_T0);
-      char str[256] = {};
-      strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
-      str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+          free_reg(REG_T0);
+          char str[256] = {};
+          strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+          str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
 
-      fprintf(write_file, ".data\n");
+          fprintf(write_file, ".data\n");
 			fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
 			fprintf(write_file, "mv a0, t0\n");
+            caller_save();
 			fprintf(write_file, "jal _write_str\n");
 			++constant_value_counter;
 		}
