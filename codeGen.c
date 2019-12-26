@@ -391,7 +391,7 @@ void gen_ifStmt(AST_NODE* ifNode)
           fprintf(write_file, "j _Lexit%d\n", local_label_number);
           fprintf(write_file, "_Lelse%d:\n", local_label_number);
           gen_stmt(elseBodyNode);
-          fprintf(write_file, " _Lexit%d\n", local_label_number);
+          fprintf(write_file, " _Lexit%d:\n", local_label_number);
       }
 }
 
