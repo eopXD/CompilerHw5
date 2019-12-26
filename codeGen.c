@@ -570,7 +570,7 @@ int gen_expr ( AST_NODE *exprNode ) {
         }
         fprintf(write_file, "or %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
       } else { // comparing operation 
-        rd = get_int_reg(exprNode->child);
+        rd = get_int_reg(exprNode);
         char *comparison_op1, *comparison_op2;
         if ( bin_op(exprNode) == BINARY_OP_EQ ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sub" : "feq.s";
