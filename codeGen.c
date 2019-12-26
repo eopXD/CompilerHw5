@@ -543,6 +543,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			rs = get_int_reg(exprNode);
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
+      fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP\n");  
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			rs = gen_expr(exprNode->child);
 			rt = gen_expr(exprNode->child->rightSibling);
@@ -568,6 +569,7 @@ int gen_expr ( AST_NODE *exprNode ) {
         }
         fprintf(write_file, "or %s, %s, %s\n", regName[rs], regName[rs], regName[rt]);
       } else { // comparing operation 
+        fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP - comparison op\n");  
         rd = get_int_reg(exprNode);
         char *comparison_op1, *comparison_op2;
         if ( bin_op(exprNode) == BINARY_OP_EQ ) {
@@ -596,13 +598,13 @@ int gen_expr ( AST_NODE *exprNode ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
         } 
+/*      swap rs and rd */
+        int tmp = rs;
+        rs = rd;
+        rd = tmp;
+/*      swap rs and rd */
       }
-#undef bin_op
-/* swap rs and rd */
-      int tmp = rs;
-      rs = rd;
-      rd = tmp;
-/* swap rs and rd */
+      #undef bin_op
 			free_reg(rt);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
@@ -694,6 +696,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 		fprintf(stderr, "[gen_expr] unknown node type\n");
 		exit(1);
 	}
+  fprintf(stderr, "[gen_expr] end\n");
 	return rs;
 }
 
@@ -707,7 +710,6 @@ void gen_block ( AST_NODE *blockNode ) {
 				gen_stmt(stmtNode);
 			}
 		}
-
 	}
 }
 
