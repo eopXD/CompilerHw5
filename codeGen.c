@@ -338,7 +338,14 @@ void gen_assignStmt(AST_NODE* assignNode)
   AST_NODE *lhs = assignNode->child;
   int rhs_reg = gen_expr(lhs->rightSibling); // acquire rhs as register
   store_reg(lhs, rhs_reg);
+
   regTable[rhs_reg].status = DIRTY;
+  if(lhs->nodeType == IDENTIFIER_NODE && lhs->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
+      SymbolTableEntry* entry = get_entry(lhs);
+      if(entry->nestingLevel == 0){
+          free_reg(rhs_reg);
+      }
+  }
 }
 
 void gen_returnStmt(AST_NODE* returnNode)
