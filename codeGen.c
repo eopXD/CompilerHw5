@@ -540,10 +540,11 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
 		fprintf(stderr, "[gen_expr] EXPR_NODE\n");
-		if( exprNode->dataType == INT_TYPE ) {
+		/*if( exprNode->dataType == INT_TYPE ) {
 			rs = get_int_reg(exprNode);
 			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
-		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
+		}*/
+        if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			float_or_not2 = exprNode->dataType == INT_TYPE ? "" : ".s";
 			rs = gen_expr(exprNode->child);
