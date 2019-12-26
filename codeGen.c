@@ -91,7 +91,7 @@ int in_reg(AST_NODE* node)
           return -1;
       }
       for(int i = 0; i < REGISTER_NUM; i++){
-          if(regTable[i].kind == VARIABLE_KIND){
+          if(regTable[i].kind == VARIABLE_KIND && regTable[i].status != FREE){
               SymbolTableEntry* tmp = get_entry(regTable[i].node);
     //          printf("%s %s\n", entry->name,tmp->name);
               if(!strcmp(entry->name, tmp->name)){
@@ -306,6 +306,7 @@ void free_reg ( int regIndex ) {
       }
     }
   }
+  regTable[regIndex].node = NULL;
   regTable[regIndex].status = FREE;
 }
 
