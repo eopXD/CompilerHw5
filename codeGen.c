@@ -382,15 +382,15 @@ void gen_ifStmt(AST_NODE* ifNode)
       AST_NODE* elseBodyNode = ifBodyNode->rightSibling;
       if(elseBodyNode == NULL){
           fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
-          gen_stmt(ifBodyNode);
+          gen_block(ifBodyNode);
           fprintf(write_file, "_Lexit%d:\n", local_label_number);
   
       }else{
           fprintf(write_file, "beqz %s, _Lelse%d  \n", regName[index], local_label_number);
-          gen_stmt(ifBodyNode);
+          gen_block(ifBodyNode);
           fprintf(write_file, "j _Lexit%d\n", local_label_number);
           fprintf(write_file, "_Lelse%d:\n", local_label_number);
-          gen_stmt(elseBodyNode);
+          gen_block(elseBodyNode);
           fprintf(write_file, " _Lexit%d:\n", local_label_number);
       }
 }
@@ -402,7 +402,7 @@ void gen_whileStmt(AST_NODE* whileNode)
     AST_NODE* boolExpression = whileNode->child;
     int index = gen_expr(boolExpression);
     fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
-    gen_stmt(boolExpression->rightSibling);
+    gen_block(boolExpression->rightSibling);
     fprintf(write_file, "j _Test%d\n", local_label_number);
     fprintf(write_file, "_Lexit%d:\n", local_label_number);
 }
