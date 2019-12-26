@@ -298,7 +298,9 @@ void free_reg ( int regIndex ) {
               printf("QQQQ\n");
               exit(0);
           }
-          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          AST_NODE *dimListNode = reg.node->child;
+            SymbolTableEntry* entry = get_entry(reg.node);
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*dimListNode->semantic_value.const1->const_u.intval+ entry->offset);
         }
       } else {
         fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
