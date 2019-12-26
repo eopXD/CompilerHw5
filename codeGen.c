@@ -550,7 +550,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 			rt = gen_expr(exprNode->child->rightSibling);
 #define bin_op(node) node->semantic_value.exprSemanticValue.op.binaryOp
       if ( bin_op(exprNode) == BINARY_OP_ADD ) {
-				fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+				fprintf(write_file, "%sadd%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_SUB ) {
         fprintf(write_file, "%ssub%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_MUL ) {
