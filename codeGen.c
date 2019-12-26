@@ -263,12 +263,16 @@ void free_reg ( int regIndex ) {
         if ( entry->nestingLevel == 0 ) { // global normal
           //fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "la %s, _g_%s\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
+          fprintf(write_file, "%ssw %s, 0(%s)\n", float_or_not, regName[regIndex], regName[addr_reg]);
         } else { // local normal
             //TODO local no need to ?
           //fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
           //fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
-          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          if(!strcmp(float_or_not,"f")&& regIndex < 32){
+              printf("QQQQ\n");
+              exit(0);
+          }
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
       } else if ( node->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
         if ( node->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
@@ -276,6 +280,10 @@ void free_reg ( int regIndex ) {
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
         } else { // local array
+          if(!strcmp(float_or_not,"f")&& regIndex < 32){
+              printf("QQQQ\n");
+              exit(0);
+          }
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
       } else {
