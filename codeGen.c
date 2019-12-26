@@ -383,7 +383,7 @@ void gen_ifStmt(AST_NODE* ifNode)
       if(elseBodyNode == NULL){
           fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
           gen_stmt(ifBodyNode);
-          fprintf(write_file, "_Lexit%d\n", local_label_number);
+          fprintf(write_file, "_Lexit%d:\n", local_label_number);
   
       }else{
           fprintf(write_file, "beqz %s, _Lelse%d  \n", regName[index], local_label_number);
@@ -928,14 +928,19 @@ int gen_offset ( AST_NODE *node, int offset ) {
 	}
 	FOR_ALL_CHILD(node, child) {
 		int x = gen_offset(child, offset);
-		if ( x < offset ) {
+		if ( x > offset ) {
 			offset = x;
 		}
 	}
+    printf("QQQ\n");
 	if ( node->nodeType==DECLARATION_NODE && node->semantic_value.declSemanticValue.kind == FUNCTION_DECL ) {
 		AST_NODE *idNode = node->child->rightSibling;
 		idNode->semantic_value.identifierSemanticValue.symbolTableEntry = 
 		 retrieveSymbol(idNode->semantic_value.identifierSemanticValue.identifierName);
+        //AST_NODE* blocknode = idNode->rightSibling->rightSibling; 
+        //SymbolTableEntry* entry = get_entry(blocknode);
+        printf("offset %d\n", offset);
+        exit(0);
 		idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
 	}
 	return (offset);
