@@ -913,6 +913,7 @@ int gen_offset ( AST_NODE *node, int offset ) {
 void param_offset ( AST_NODE *paramNode, int offset ) {
 	offset += 16;
 	FOR_ALL_CHILD(paramNode, child) {
+
 		child->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
 		offset += 4;
 	}
@@ -932,13 +933,23 @@ int block_offset ( AST_NODE *blockNode, int offset ) {
 			SymbolTableEntry *sym = idNode->semantic_value.identifierSemanticValue.symbolTableEntry;
 			if (sym->attribute->attr.typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR ) {
 				ArrayProperties arrayProp = sym->attribute->attr.typeDescriptor->properties.arrayProperties;
-				int sz = 4;
+				int sz = 1;
 				for ( int i=0; i< arrayProp.dimension; ++i ) {
 					sz *= arrayProp.sizeInEachDimension[i];
 				}
+				fprintf(stderr, "[block_offset] array of size %d, ", sz);
+				// int/float takes 4 byte (single word), not doing double word here
+				//sz *= (sym->attribute->attr.typeDescriptor->properties.dataType == INT_TYPE) ? 4 : 4;
+				sz *= 4;
 				offset += sz;
-			}else{
-                offset += 4;
+				fprintf(stderr, "idNode %s: %d\n", 
+				 idNode->semantic_value.identifierSemanticValue.identifierName, offset);
+			} else{
+				// int/float takes 4 byte (single word), not doing double word here
+                //offset += (sym->attribute->attr.typeDescriptor->properties.dataType == INT_TYPE) ? 4 : 4;
+				offset += 4;
+				fprintf(stderr, "[block_offset] non-array, idNode %s: %d\n", 
+				 idNode->semantic_value.identifierSemanticValue.identifierName, offset);
             }
 			sym->offset = offset;
 			idNode = idNode->rightSibling;
