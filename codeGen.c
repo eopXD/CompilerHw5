@@ -471,13 +471,12 @@ int gen_expr ( AST_NODE *exprNode ) {
 		if ( exprNode->semantic_value.const1->const_type == INTEGERC ) { // const integer
 			if ( (rs=in_reg(exprNode)) < 0 ) {
 				rs = get_int_reg(exprNode);
-                int rt = 9;
+                //int rt = 9;
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d: .word %d\n", constant_value_counter, exprNode->semantic_value.const1->const_u.intval);
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
-				fprintf(write_file, "la %s, _CONSTANT_%d\n", regName[rt], constant_value_counter);
-				fprintf(write_file, "mv %s, %s\n", regName[rs], regName[rt]);
+				fprintf(write_file, "lw %s, _CONSTANT_%d\n", regName[rs], constant_value_counter);
 				++constant_value_counter;
 			}
 		} else if ( exprNode->semantic_value.const1->const_type == FLOATC ) { // const float
