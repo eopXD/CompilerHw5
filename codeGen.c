@@ -540,10 +540,11 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == EXPR_NODE ) { // solve expression
 		fprintf(stderr, "[gen_expr] EXPR_NODE\n");
-		if( exprNode->dataType == INT_TYPE ) {
-			rs = get_int_reg(exprNode);
-			fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
-		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
+		//if( exprNode->dataType == INT_TYPE ) {
+		//	rs = get_int_reg(exprNode);
+		//	fprintf(write_file, "li %s, %d\n", regName[rs], exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue);
+		//} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
+		if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
       fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP\n");  
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			float_or_not2 = exprNode->dataType == INT_TYPE ? "" : ".s";
@@ -575,31 +576,39 @@ int gen_expr ( AST_NODE *exprNode ) {
         rd = get_int_reg(exprNode);
         char *comparison_op1, *comparison_op2;
         if ( bin_op(exprNode) == BINARY_OP_EQ ) {
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_EQ\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sub" : "feq.s";
           comparison_op2 = (exprNode->dataType == INT_TYPE) ? "seqz" : "snez";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
           fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_NE ) {          
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_NE\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sub" : "feq.s";
           comparison_op2 = (exprNode->dataType == INT_TYPE) ? "snez" : "seqz";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
           fprintf(write_file, "%s %s, %s\n", comparison_op2, regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_GE ) {
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_GE\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
           fprintf(write_file, "xori %s, %s, 1\n", regName[rd], regName[rd]);
 
         } else if ( bin_op(exprNode) == BINARY_OP_LE ) {
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_LE\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sgt" : "fgt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
           fprintf(write_file, "xori %s, %s, 1\n", regName[rd], regName[rd]);
         } else if ( bin_op(exprNode) == BINARY_OP_GT ) {
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_GT\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "sgt" : "fgt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
         } else if ( bin_op(exprNode) == BINARY_OP_LT ) {
+          fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP_LT\n");  
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
-        } 
+        } else {
+			fprintf(write_file, "[gen_expr] receive unknown comparison\n");
+		}
 /*      swap rs and rd */
         int tmp = rs;
         rs = rd;
