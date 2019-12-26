@@ -37,7 +37,7 @@ char regName[64][8] = {
 
 int useRegList[64] = { 
     1, 1, 1, 1, 1,
-    0, 0, 0, 1, 0,
+    0, 0, 0, 1, 1,
     1, 1, 1, 1, 1,  
     1, 1, 0, 0, 0,
     0, 0, 0, 0, 0,
@@ -207,6 +207,7 @@ int get_float_add_reg()
       }
       for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+    //          printf("%d %d\n",i,  regTable[i].status);
               free_reg(i);
               store_reg(NULL, i);
               return i;
@@ -250,11 +251,11 @@ void free_reg ( int regIndex ) {
   int addr_reg;
   if ( reg.status == DIRTY ) {
     if ( reg.node->nodeType == IDENTIFIER_NODE ) {
-      reg.status = BUSY;
+      regTable[regIndex].status = BUSY;
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       //float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
-      addr_reg = reg.node->dataType == INT_TYPE ? get_int_add_reg() : get_float_add_reg();
+      addr_reg = reg.node->dataType == INT_TYPE ? 9 : 40;
       //addr_reg = get_addr_reg(); 
 	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
