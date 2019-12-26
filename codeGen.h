@@ -12,6 +12,7 @@ typedef enum regAttributeKind
    TEMPORARY_KIND,
    VARIABLE_KIND, 
    CONST_KIND,
+   ADDRESS_KIND,
    OTHER_KIND
 } regAttributeKind;
 

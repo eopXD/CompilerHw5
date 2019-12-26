@@ -10,9 +10,9 @@
 #define DIRTY 1
 #define CLEAN 0
 #define FREE -1
+#define BUSY -2
 #define REG_FT0 32
 #define REG_T0 5
-
 int label_no = 0;
 FILE *write_file;
 int constant_value_counter = 0; // for constant allocation
@@ -101,6 +101,11 @@ int in_reg(AST_NODE* node)
 
 void store_reg(AST_NODE* node, int index)
 {
+    if(node == NULL){
+        regTable[index].kind = ADDRESS_KIND;
+        regTable[index].status = CLEAN;
+        return ;
+    }
     regTable[index].node = node;
     if(node->nodeType == IDENTIFIER_NODE){
       regTable[index].kind = VARIABLE_KIND;
@@ -134,12 +139,14 @@ int get_float_reg(AST_NODE* node)
       
       for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == FREE){
+              fprintf(stderr, "get free\n");
               store_reg(node, i);
               return i;
           }
       }
       for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == CLEAN){
+              fprintf(stderr, "get clean\n");
               free_reg(i);
               store_reg(node, i);
               return i;
@@ -147,6 +154,7 @@ int get_float_reg(AST_NODE* node)
       }
       for(int i = 32; i < REGISTER_NUM; i++){
           if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+              //fprintf(stderr, "get dirty\n");
               free_reg(i);
               store_reg(node, i);
               return i;
@@ -154,6 +162,33 @@ int get_float_reg(AST_NODE* node)
       }
       return -1;
 }
+
+int get_addr_reg()
+{
+      int index = -1;
+      for(int i = 0; i < 32; i++){
+          if(regTable[i].status == FREE){
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      for(int i = 0; i < 32; i++){
+          if(regTable[i].status == CLEAN){
+              free_reg(i);
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      for(int i = 0; i < 32; i++){
+          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+              free_reg(i);
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      return -1;
+}
+
 int get_int_reg(AST_NODE* node)
   {
       int index = in_reg(node);
@@ -190,11 +225,12 @@ void free_reg ( int regIndex ) {
   int addr_reg;
   if ( reg.status == DIRTY ) {
     if ( reg.node->nodeType == IDENTIFIER_NODE ) {
+      reg.status = BUSY;
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
-      float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
-      addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
-      
+      //float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
+      //addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
+      addr_reg = get_addr_reg(); 
 	  fprintf(write_file, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
@@ -202,6 +238,7 @@ void free_reg ( int regIndex ) {
           fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
         } else { // local normal
+            //TODO local no need to ?
           fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
           fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
         }
@@ -405,6 +442,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 				uf.f = exprNode->semantic_value.const1->const_u.fval;
 				rs = get_float_reg(exprNode);
 				rt = get_int_reg(exprNode);
+                fprintf(stderr ,"%d %d\n", rs, rt);
 				fprintf(stderr, "get reg for rs and rt\n");
 				fprintf(write_file, ".data\n");
 				fprintf(write_file, "_CONSTANT_%d:\n", constant_value_counter);
