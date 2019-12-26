@@ -340,7 +340,7 @@ void gen_assignStmt(AST_NODE* assignNode)
   store_reg(lhs, rhs_reg);
 
   regTable[rhs_reg].status = DIRTY;
-  if(lhs->nodeType == IDENTIFIER_NODE && lhs->semantic_value.identifierSemanticValue.kind == NORMAL_ID ){
+  if(lhs->nodeType == IDENTIFIER_NODE){
       SymbolTableEntry* entry = get_entry(lhs);
       if(entry->nestingLevel == 0){
           free_reg(rhs_reg);
