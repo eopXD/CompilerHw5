@@ -845,7 +845,8 @@ void gen_func ( AST_NODE *funcNode ) {
 		fprintf(write_file, "call _read_float\n");
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
-		fprintf(stderr, "[gen_func] write\n");
+		fprintf(stderr, "[gen_func] write\n"); 
+        callee_save ();
     AST_NODE *paramNode = paramListNode->child;
 		int reg;
 		if ( paramNode->dataType == INT_TYPE ) {
@@ -860,6 +861,7 @@ void gen_func ( AST_NODE *funcNode ) {
             fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
+        callee_restore();
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
       free_reg(REG_T0);
       char str[256] = {};
