@@ -934,7 +934,6 @@ int gen_offset ( AST_NODE *node, int offset ) {
 			offset = x;
 		}
 	}
-    printf("QQQ\n");
 	if ( node->nodeType==DECLARATION_NODE && node->semantic_value.declSemanticValue.kind == FUNCTION_DECL ) {
 		AST_NODE *idNode = node->child->rightSibling;
 		idNode->semantic_value.identifierSemanticValue.symbolTableEntry = 
@@ -942,7 +941,6 @@ int gen_offset ( AST_NODE *node, int offset ) {
         //AST_NODE* blocknode = idNode->rightSibling->rightSibling; 
         //SymbolTableEntry* entry = get_entry(blocknode);
         printf("offset %d\n", offset);
-        exit(0);
 		idNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset = offset;
 	}
 	return (offset);
