@@ -630,7 +630,7 @@ int gen_expr ( AST_NODE *exprNode ) {
         rt = get_int_reg(exprNode);
         if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global variable
             fprintf(write_file, "la %s, _g_%s\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
-            fprintf(write_file, "%slw %s, %s\n", float_or_not, regName[rs], regName[rt]);
+            fprintf(write_file, "%slw %s, (%s)\n", float_or_not, regName[rs], regName[rt]);
             free_reg(rt);
         } else { // local varaible
             fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
