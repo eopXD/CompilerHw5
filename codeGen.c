@@ -271,7 +271,7 @@ void free_reg ( int regIndex ) {
       } else if ( node->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
         if ( node->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "addi a0, %s, %%lo(_g_%s)\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %sa0, %s, %%lo(_g_%s)\n",float_or_not ,regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
         } else { // local array
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
@@ -594,7 +594,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
         if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global arrays
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "addi a0, %s, %%lo(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %sa0, %s, %%lo(_g_%s)\n",float_or_not ,regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rs]);
         } else { // local array
           fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
