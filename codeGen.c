@@ -255,24 +255,26 @@ void free_reg ( int regIndex ) {
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
-      addr_reg = reg.node->dataType == INT_TYPE ? 9 : 40;
-      //addr_reg = get_addr_reg(); 
+      //addr_reg = reg.node->dataType == INT_TYPE ? 9 : 40;
+      addr_reg = 9; 
 	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
         if ( entry->nestingLevel == 0 ) { // global normal
-          fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          //fprintf(write_file, "%sla %s, _g_%s\n", float_or_not, regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "la %s, _g_%s\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
           fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
         } else { // local normal
             //TODO local no need to ?
-          fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
-          fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
+          //fprintf(write_file, "%sla %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
+          //fprintf(write_file, "%ssw, %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);    
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[addr_reg], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
       } else if ( node->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) { // array var
         if ( node->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global array
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "addi %sa0, %s, %%lo(_g_%s)\n",float_or_not ,regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "%sw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
+          fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], node->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%ssw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*node->child->semantic_value.const1->const_u.intval, regName[addr_reg]);
         } else { // local array
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*node->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
@@ -593,9 +595,11 @@ int gen_expr ( AST_NODE *exprNode ) {
       AST_NODE *dimListNode = exprNode->child;
       if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
         if ( exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel == 0 ) { // global arrays
-          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "addi %sa0, %s, %%lo(_g_%s)\n",float_or_not ,regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
-          fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rs]);
+          int rt = 9; 
+          //fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rs], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[rt],regName[rt], exprNode->semantic_value.identifierSemanticValue.identifierName);
+          fprintf(write_file, "%slw %s, %d(%s)\n", float_or_not, regName[rs], 4*dimListNode->semantic_value.const1->const_u.intval, regName[rt]);
         } else { // local array
           fprintf(write_file, "%slw %s, -%d(fp)\n", float_or_not, regName[rs], 4*exprNode->semantic_value.identifierSemanticValue.symbolTableEntry->offset);
         }
