@@ -382,15 +382,15 @@ void gen_ifStmt(AST_NODE* ifNode)
       AST_NODE* elseBodyNode = ifBodyNode->rightSibling;
       if(elseBodyNode == NULL){
           fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
-          gen_stmt(ifBodyNode);
+          gen_block(ifBodyNode);
           fprintf(write_file, "_Lexit%d:\n", local_label_number);
   
       }else{
           fprintf(write_file, "beqz %s, _Lelse%d  \n", regName[index], local_label_number);
-          gen_stmt(ifBodyNode);
+          gen_block(ifBodyNode);
           fprintf(write_file, "j _Lexit%d\n", local_label_number);
           fprintf(write_file, "_Lelse%d:\n", local_label_number);
-          gen_stmt(elseBodyNode);
+          gen_block(elseBodyNode);
           fprintf(write_file, " _Lexit%d:\n", local_label_number);
       }
 }
@@ -402,7 +402,7 @@ void gen_whileStmt(AST_NODE* whileNode)
     AST_NODE* boolExpression = whileNode->child;
     int index = gen_expr(boolExpression);
     fprintf(write_file, "beqz %s, _Lexit%d\n", regName[index], local_label_number);
-    gen_stmt(boolExpression->rightSibling);
+    gen_block(boolExpression->rightSibling);
     fprintf(write_file, "j _Test%d\n", local_label_number);
     fprintf(write_file, "_Lexit%d:\n", local_label_number);
 }
@@ -476,6 +476,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 // results put into 'rs'
 	int rs, rt, rd;
 	char *float_or_not;
+	char *float_or_not2;
 
 	int ival;
 	float fval;
@@ -545,17 +546,18 @@ int gen_expr ( AST_NODE *exprNode ) {
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == BINARY_OPERATION ) {
       fprintf(stderr, "[gen_expr] EXPR_NODE - BINARY_OP\n");  
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
+			float_or_not2 = exprNode->dataType == INT_TYPE ? "" : ".s";
 			rs = gen_expr(exprNode->child);
 			rt = gen_expr(exprNode->child->rightSibling);
 #define bin_op(node) node->semantic_value.exprSemanticValue.op.binaryOp
       if ( bin_op(exprNode) == BINARY_OP_ADD ) {
-				fprintf(write_file, "%sadd %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+				fprintf(write_file, "%sadd%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_SUB ) {
-        fprintf(write_file, "%ssub %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%ssub%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_MUL ) {
-        fprintf(write_file, "%smul %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%smul%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_DIV ) {
-        fprintf(write_file, "%sdiv %s, %s, %s\n", float_or_not, regName[rs], regName[rs], regName[rt]);
+        fprintf(write_file, "%sdiv%s %s, %s, %s\n", float_or_not, float_or_not2, regName[rs], regName[rs], regName[rt]);
       } else if ( bin_op(exprNode) == BINARY_OP_AND ) {
         if ( exprNode->dataType == FLOAT_TYPE ) {
           fprintf(stderr, "[gen_expr] exprNode BINARY_OP_AND is FLOAT_TYPE\n");
