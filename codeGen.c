@@ -607,8 +607,8 @@ int gen_expr ( AST_NODE *exprNode ) {
           comparison_op1 = (exprNode->dataType == INT_TYPE) ? "slt" : "flt.s";
           fprintf(write_file, "%s %s, %s, %s\n", comparison_op1, regName[rd], regName[rs], regName[rt]);
         } else {
-			fprintf(write_file, "[gen_expr] receive unknown comparison\n");
-		}
+			    fprintf(write_file, "[gen_expr] receive unknown comparison\n");
+		    }
 /*      swap rs and rd */
         int tmp = rs;
         rs = rd;
@@ -618,26 +618,28 @@ int gen_expr ( AST_NODE *exprNode ) {
       #undef bin_op
 			free_reg(rt);
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
+      fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP\n");  
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
 			rs = gen_expr(exprNode->child);
-			switch ( exprNode->semantic_value.exprSemanticValue.op.unaryOp ) {
-				case UNARY_OP_POSITIVE: 
-					/* don't need to do anything */
-					break;
-				case UNARY_OP_NEGATIVE: 
-					if ( exprNode->child->dataType == INT_TYPE ) {
-						fprintf(write_file, "negw %s, %s\n", regName[rs], regName[rs]);
-					} else if ( exprNode->child->dataType == FLOAT_TYPE ) {
-						fprintf(write_file, "fneg.s %s, %s\n", regName[rs], regName[rs]);
-					} else {
-						fprintf(write_file, "[gen_expr] unary->child has unknown dataType\n");
-					}
-				case UNARY_OP_LOGICAL_NEGATION:
-          fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
-					break;
-				default: break;
-			}
-
+#define un_op(node) node->semantic_value.exprSemanticValue.op.unaryOp
+      if ( un_op(exprNode) == UNARY_OP_POSITIVE ) {
+        fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP_POSITIVE\n"); 
+      } else if ( un_op(exprNode) == UNARY_OP_NEGATIVE ) {
+        fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP_NEGATIVE\n");  
+        if ( exprNode->child->dataType == INT_TYPE ) {
+          fprintf(write_file, "negw %s, %s\n", regName[rs], regName[rs]);  
+        } else if ( exprNode->child->dataType == FLOAT_TYPE ) {
+          fprintf(write_file, "fneg.s %s, %s\n", regName[rs], regName[rs]);
+        } else {
+          fprintf(write_file, "[gen_expr] unary->child has unknown dataType\n");
+        }      
+      } else if ( un_op(exprNode) == UNARY_OP_LOGICAL_NEGATION ) {
+        fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP_LOGICAL_NEGATION\n");        
+      } else {
+        fprintf(write_file, "[gen_expr] receive unknown comparison\n");
+        fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
+      }
+#undef un_op
 		}
 	} else if ( exprNode->nodeType == STMT_NODE ) { // solve statement
 		gen_func(exprNode);
