@@ -477,7 +477,7 @@ int gen_expr ( AST_NODE *exprNode ) {
 				fprintf(write_file, ".align 3\n");
 				fprintf(write_file, ".text\n");
 				fprintf(write_file, "la %s, _CONSTANT_%d\n", regName[rt], constant_value_counter);
-				fprintf(write_file, "lw %s, %s\n", regName[rs], regName[rt]);
+				fprintf(write_file, "mv %s, %s\n", regName[rs], regName[rt]);
 				++constant_value_counter;
 			}
 		} else if ( exprNode->semantic_value.const1->const_type == FLOATC ) { // const float
