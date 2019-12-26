@@ -163,7 +163,7 @@ int get_float_reg(AST_NODE* node)
       return -1;
 }
 
-int get_addr_reg()
+int get_int_add_reg()
 {
       int index = -1;
       for(int i = 0; i < 32; i++){
@@ -189,6 +189,31 @@ int get_addr_reg()
       return -1;
 }
 
+int get_float_add_reg()
+{
+      int index = -1;
+      for(int i = 32; i < REGISTER_NUM; i++){
+          if(regTable[i].status == FREE){
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      for(int i = 32; i < REGISTER_NUM; i++){
+          if(regTable[i].status == CLEAN){
+              free_reg(i);
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      for(int i = 32; i < REGISTER_NUM; i++){
+          if(regTable[i].status == DIRTY && regTable[i].kind != TEMPORARY_KIND && regTable[i].kind != OTHER_KIND){
+              free_reg(i);
+              store_reg(NULL, i);
+              return i;
+          }
+      }
+      return -1;
+}
 int get_int_reg(AST_NODE* node)
   {
       int index = in_reg(node);
@@ -229,8 +254,8 @@ void free_reg ( int regIndex ) {
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
       //float_or_not = reg.node->dataType == INT_TYPE ? "" : "f";
-      //addr_reg = reg.node->dataType == INT_TYPE ? get_int_reg(reg.node) : get_float_reg(reg.node);
-      addr_reg = get_addr_reg(); 
+      addr_reg = reg.node->dataType == INT_TYPE ? get_int_add_reg() : get_float_add_reg();
+      //addr_reg = get_addr_reg(); 
 	  fprintf(stderr, "[free_reg] writing data for var %s\n", reg.node->semantic_value.identifierSemanticValue.identifierName);
       fprintf(stderr, "[free_reg] (regIndex, addr_reg): (%d %d)\n", regIndex, addr_reg);
       if ( node->semantic_value.identifierSemanticValue.kind == NORMAL_ID ) { // normal var
@@ -804,14 +829,14 @@ void gen_func ( AST_NODE *funcNode ) {
 		int reg;
 		if ( paramNode->dataType == INT_TYPE ) {
             reg = gen_expr(paramNode);
-      fprintf(stderr, "[gen_func] write int\n");
+            fprintf(stderr, "[gen_func] write int\n");
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
 	        reg = gen_expr(paramNode);
             fprintf(stderr, "[gen_func] write float %d\n", reg);
-      fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
+            fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
