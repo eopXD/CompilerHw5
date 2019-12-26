@@ -264,7 +264,7 @@ void free_reg ( int regIndex ) {
   RegTable reg = regTable[regIndex];
   int addr_reg;
   if ( reg.status == DIRTY ) {
-    if ( reg.node->nodeType == IDENTIFIER_NODE ) {
+    if ( reg.kind == VARIABLE_KIND && reg.node->nodeType == IDENTIFIER_NODE ) {
       regTable[regIndex].status = BUSY;
 	  AST_NODE *node = reg.node;
       SymbolTableEntry* entry = get_entry(reg.node);
