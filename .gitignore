@@ -1,0 +1,8 @@
+*.o
+*.swp
+lex.yy.c
+*.s
+parser
+parser.output
+parser.tab.*
+testdata/

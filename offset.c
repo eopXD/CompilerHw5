@@ -1,5 +1,7 @@
 #include "offset.h"
 
+#include <stdio.h>
+
 void offsetgen ( AST_NODE *program ) {
 	gen_offset(program, 0);
 }

@@ -3,11 +3,13 @@
 
 #define REGISTER_NUM 64
 
+#include <stddef.h>
+
 #include "header.h"
 #include "symbolTable.h"
 
 // iteration on all childs of 'node' with pointer 'childnode'
-#define FOR_ALL_CHILD(node, childnode) for(AST_NODE* (childnode)=(node)->child; (childnode)!=NULL; (childnode)=(childnode)->rightSibling)
+#define FOR_ALL_CHILD(node, childnode) for(AST_NODE* childnode=node->child; childnode!=NULL; childnode=childnode->rightSibling)
 
 /* kind of node */
 #define id_kind(idNode) (idNode)->semantic_value.identifierSemanticValue.kind
