@@ -7,8 +7,11 @@ YACC = bison -v
 YACCFLAG = -d
 LIBS = -lfl 
 
-parser: parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGen.o
-	$(CC) -o $(TARGET) parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGen.o $(LIBS)
+parser: parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGen.o offset.o
+	$(CC) -o $(TARGET) parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGen.o offset.o $(LIBS)
+
+offest.o: codeGen.o
+	$(CC) -c offset.c
 
 codeGen.o: symbolTable.o
 	$(CC) -c codeGen.c
