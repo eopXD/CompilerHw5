@@ -545,8 +545,8 @@ int gen_expr ( AST_NODE *exprNode ) {
         rd = tmp;
 /*      swap rs and rd */
       }
-      #undef bin_op
 			free_reg(rt);
+#undef bin_op
 		} else if( exprNode->semantic_value.exprSemanticValue.kind == UNARY_OPERATION ) {
       fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP\n");  
 			float_or_not = exprNode->dataType == INT_TYPE ? "" : "f";
@@ -564,14 +564,20 @@ int gen_expr ( AST_NODE *exprNode ) {
           fprintf(write_file, "[gen_expr] unary->child has unknown dataType\n");
         }      
       } else if ( un_op(exprNode) == UNARY_OP_LOGICAL_NEGATION ) {
+        if ( exprNode->dataType == FLOAT_TYPE ) {
+          fprintf(stderr, "[gen_expr] exprNode UNARY_OP_LOGICAL_NEGATION is FLOAT_TYPE\n");
+          exit(1);
+        }
         fprintf(stderr, "[gen_expr] EXPR_NODE - UNARY_OP_LOGICAL_NEGATION\n");        
+        fprintf(write, "seqz %s, %s\n", regName[rs]);
+        fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
       } else {
         fprintf(write_file, "[gen_expr] receive unknown comparison\n");
-        fprintf(write_file, "andi %s, 0xff\n", regName[rs]);
       }
 #undef un_op
 		}
 	} else if ( exprNode->nodeType == STMT_NODE ) { // solve statement
+    fprintf(stderr, "[gen_expr] exprNode is STMT_NODE\n");
 		gen_func(exprNode);
 		if ( exprNode->dataType == INT_TYPE ) {
 			rs = REG_T0;// t0
@@ -580,10 +586,6 @@ int gen_expr ( AST_NODE *exprNode ) {
 		}
 	} else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
     if ( exprNode->semantic_value.identifierSemanticValue.kind == ARRAY_ID ) {
-    /*
-    testdata in hw5 shall not do into this if-statement
-    (BEWARE of variable type)
-    */  
       fprintf(stderr, "[gen_expr] exprNode is IDENTIFIER_NODE - kind = ARRAY_ID\n");
       float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
       if ( exprNode->dataType == INT_TYPE ) {
@@ -843,35 +845,35 @@ void gen_func ( AST_NODE *funcNode ) {
 		fprintf(write_file, "fmv.s ft0, fa0\n");
 	} else if ( strcmp(func_name, "write") == 0 ) { // write( int / float / const char [])
 		fprintf(stderr, "[gen_func] write\n"); 
-        AST_NODE *paramNode = paramListNode->child;
+    AST_NODE *paramNode = paramListNode->child;
 		int reg;
 		if ( paramNode->dataType == INT_TYPE ) {
-            reg = gen_expr(paramNode);
-            fprintf(stderr, "[gen_func] write int\n");
+      reg = gen_expr(paramNode);
+      fprintf(stderr, "[gen_func] write int\n");
 			fprintf(write_file, "mv a0, %s\n", regName[reg]);
-            caller_save();
+      caller_save();
 			fprintf(write_file, "jal _write_int\n");
 		}
 		if ( paramNode->dataType == FLOAT_TYPE ) {
-	        reg = gen_expr(paramNode);
-            fprintf(stderr, "[gen_func] write float %d\n", reg);
-            fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
-            caller_save();
+      reg = gen_expr(paramNode);
+      fprintf(stderr, "[gen_func] write float %d\n", reg);
+      fprintf(write_file, "fmv.s fa0, %s\n", regName[reg]);
+      caller_save();
 			fprintf(write_file, "jal _write_float\n");
 		}
 		if ( paramNode->dataType == CONST_STRING_TYPE ) {
-            free_reg(REG_T0);
-            char str[256] = {};
-            strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
-            str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
+      free_reg(REG_T0);
+      char str[256] = {};
+      strncpy(str, paramNode->semantic_value.const1->const_u.sc+1, strlen(paramNode->semantic_value.const1->const_u.sc)-2);
+      str[strlen(paramNode->semantic_value.const1->const_u.sc)-1] = '\0';
 
-            fprintf(write_file, ".data\n");
-            fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
+      fprintf(write_file, ".data\n");
+      fprintf(write_file, "_CONSTANT_%d: .ascii \"%s\\000\"\n", constant_value_counter, str);
 			fprintf(write_file, ".align 3\n");
 			fprintf(write_file, ".text\n");
 			fprintf(write_file, "la t0, _CONSTANT_%d\n", constant_value_counter);
 			fprintf(write_file, "mv a0, t0\n");
-            caller_save();
+      caller_save();
 			fprintf(write_file, "jal _write_str\n");
 			++constant_value_counter;
 		}
