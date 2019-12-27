@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include "header.h"
 #include "symbolTable.h"
+#include "offset.h"
 #include "codeGen.h"
 
 int linenumber = 1;
