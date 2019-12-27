@@ -1,5 +1,4 @@
-# Compiler Final Homework - C-- Compiler
-
+# C-- Compiler
 
 Code generation for C--, with target machine is RISC-V architecture (RV64I).
 
