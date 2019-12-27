@@ -6,6 +6,30 @@
 #include "header.h"
 #include "symbolTable.h"
 
+// iteration on all childs of 'node' with pointer 'childnode'
+#define FOR_ALL_CHILD(node, childnode) for(AST_NODE* (childnode)=(node)->child; (childnode)!=NULL; (childnode)=(childnode)->rightSibling)
+
+/* kind of node */
+#define id_kind(idNode) (idNode)->semantic_value.identifierSemanticValue.kind
+#define stmt_kind(stmtNode) (stmtNode)->semantic_value.stmtSemanticValue.kind
+#define expr_kind(exprNode) (exprNode)->semantic_value.exprSemanticValue.kind
+#define decl_kind(declNode) (declNode)->semantic_value.declSemanticValue.kind
+
+/* identifier related */
+#define id_entry(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry
+#define id_nest_level(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel
+#define id_name(idNode) (idNode)->semantic_value.identifierSemanticValue.identifierName
+#define id_offset(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry->offset
+
+/* expression operation */
+#define bin_op(node) (node)->semantic_value.exprSemanticValue.op.binaryOp
+#define un_op(node) (node)->semantic_value.exprSemanticValue.op.unaryOp
+
+/* constant */
+#define const_intval(node) (node)->semantic_value.const1->const_u.intval
+#define const_fval(node) (node)->semantic_value.const1->const_u.fval
+#define const_type(node) (node)->semantic_value.const1->const_type
+
 // for the reg tracking 
 typedef enum regAttributeKind
 {
@@ -42,12 +66,6 @@ int get_float_reg (AST_NODE* node);
 
 void free_reg(int reg); // free the unused reg
 
-// offset analysis
-void offsetgen ( AST_NODE *program ); // mama call
-int gen_offset ( AST_NODE *node, int offset ); // general node
-int block_offset ( AST_NODE *blockNode, int offset ); // block
-void param_offset ( AST_NODE *paramNode, int offset ); // parameter
-
 // more general node
 void gen_block(AST_NODE* blockNode);
 
@@ -59,7 +77,6 @@ void gen_whileStmt(AST_NODE* whileNode);
 void gen_returnStmt(AST_NODE* returnNode);
 
 // expr node
-int gen_array_addr ( AST_NODE *exprNode );
 int gen_expr(AST_NODE* exprNode); // return the reg of the expr
 
 // decl node
