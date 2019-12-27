@@ -213,7 +213,8 @@ void free_reg ( int regIndex ) {
         } else { // local normal
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], id_offset(node));
         }
-      } else if ( id_kind(node) == ARRAY_ID ) { // array var
+      } else if ( id_kind(node) == ARRAY_ID ) { // array var 
+      // solve array offset with gen_array_addr()
         if ( id_nest_level(node) == 0 ) { // global array
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], id_name(node));
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], id_name(node));
@@ -524,7 +525,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       rs = REG_FT0;//ft0
     }
   } else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
-    if ( id_kind(exprNode) == ARRAY_ID ) {
+    if ( id_kind(exprNode) == ARRAY_ID ) { // TODO: solve array offset with gen_array_addr()
       fprintf(stderr, "[gen_expr] exprNode is IDENTIFIER_NODE - kind = ARRAY_ID\n");
       float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
       if ( exprNode->dataType == INT_TYPE ) {
