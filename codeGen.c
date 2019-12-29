@@ -214,25 +214,80 @@ void free_reg ( int regIndex ) {
           fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], id_offset(node));
         }
       } else if ( id_kind(node) == ARRAY_ID ) { // array var 
-      // solve array offset with gen_array_addr()
-        if ( id_nest_level(node) == 0 ) { // global array
+
+        int addr_reg = get_int_reg(node);
+        fprintf(write_file, "%ssw %s, %s\n", float_or_not, regName[regIndex], regName[addr_reg]);
+
+        /*if ( id_nest_level(node) == 0 ) { // global array
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], id_name(node));
           fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], id_name(node));
           fprintf(write_file, "%ssw %s, %d(%s)\n", float_or_not, regName[regIndex], 4*const_intval(node->child), regName[addr_reg]);
         } else { // local array
-            AST_NODE *dimListNode = reg.node->child;
-            SymbolTableEntry *entry = id_entry(reg.node);
-            fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*const_intval(dimListNode)+entry->offset);
-        }
-        } else {
-            fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
-            exit(1);
-        }
+          AST_NODE *dimListNode = reg.node->child;
+          SymbolTableEntry *entry = id_entry(reg.node);
+          fprintf(write_file, "%ssw %s, -%d(fp)\n", float_or_not, regName[regIndex], 4*const_intval(dimListNode)+entry->offset);
+        }*/
+      } else {
+        fprintf(stderr, "[free_reg] receive bad node SemanticValueKind\n");
+        exit(1);
+      }
     }
   }
   regTable[regIndex].node = NULL;
   regTable[regIndex].status = FREE;
 }
+
+// returns address register'??'
+// then you can do 
+//    lw reg, 0(??)
+//    flw reg, 0(??)
+int gen_array_addr ( AST_NODE *idNode ) {
+  fprintf(stderr, "[gen_array_addr] start\n");
+  int *sizeInEachDimension = id_type_desc(idNode)->properties.arrayProperties.sizeInEachDimension;
+  ArrayProperties arrayProp = id_type_desc(idNode)->properties.arrayProperties;
+  
+
+  AST_NODE *dimListNode = idNode->child;
+  int offset_reg = gen_expr(dimListNode);
+  int mult_reg = get_int_reg(dimListNode->child);
+  fprintf(stderr, "offset register: %s\n", regName[offset_reg]);
+  dimListNode = dimListNode->rightSibling;
+  for ( int dim=1; dim<arrayProp.dimension; ++dim ) {
+    fprintf(stderr, "dimension  = %d\n", dim);
+    fprintf(stderr, "multiplying reg: %s; sizeInEachDimension: %d\n", regName[mult_reg], sizeInEachDimension[dim]);
+    
+    fprintf(write_file, "li %s, %d\n", regName[mult_reg], sizeInEachDimension[dim]);
+    fprintf(write_file, "mul %s, %s, %s\n", regName[offset_reg], regName[offset_reg], regName[mult_reg]);
+    
+    if ( dimListNode != NULL ) {
+      int idx_reg = gen_expr(dimListNode);
+      fprintf(stderr, "get idx_reg: %s; add to offset_reg: %s\n", regName[idx_reg], regName[offset_reg]);
+      fprintf(write_file, "add %s, %s, %s\n", regName[offset_reg], regName[offset_reg], regName[idx_reg]);
+      free_reg(idx_reg);
+      dimListNode = dimListNode->rightSibling;
+    }
+  }
+  free_reg(mult_reg);
+
+  // shift left 2 bit
+  fprintf(write_file, "slli %s, %s, 2\n", regName[offset_reg], regName[offset_reg]);
+  int addr_reg = get_int_reg(idNode); // addresss regeister
+  fprintf(stderr, "address register for %s: %s\n", id_name(idNode), regName[addr_reg]);
+
+  if ( id_nest_level(idNode) == 0 ) { // load global addresss
+    fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[addr_reg], id_name(idNode));
+    fprintf(write_file, "addi %s, %s, %%lo(_g_%s)\n", regName[addr_reg], regName[addr_reg], id_name(idNode));
+
+    fprintf(write_file, "add %s, %s, %s\n", regName[addr_reg], regName[offset_reg], regName[offset_reg]);
+  } else { // load local address
+    fprintf(write_file, "sub %s, fp, -%d\n", regName[addr_reg], id_offset(idNode));
+    fprintf(write_file, "sub %s, %s, %s\n", regName[addr_reg], regName[addr_reg], regName[offset_reg]);
+  }
+
+  fprintf(stderr, "[gen_array_addr] end, return with register %s\n", regName[addr_reg]);
+  return (addr_reg);
+}
+
 
 void gen_stmt(AST_NODE* stmtNode)
 {
@@ -525,7 +580,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       rs = REG_FT0;//ft0
     }
   } else if ( exprNode->nodeType == IDENTIFIER_NODE ) { // solve identifier
-    if ( id_kind(exprNode) == ARRAY_ID ) { // TODO: solve array offset with gen_array_addr()
+    if ( id_kind(exprNode) == ARRAY_ID ) {
       fprintf(stderr, "[gen_expr] exprNode is IDENTIFIER_NODE - kind = ARRAY_ID\n");
       float_or_not = (exprNode->dataType == INT_TYPE) ? "" : "f";
       if ( exprNode->dataType == INT_TYPE ) {
@@ -538,7 +593,10 @@ int gen_expr ( AST_NODE *exprNode ) {
       }
 
       AST_NODE *dimListNode = exprNode->child;
-      if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
+      int addr_reg = gen_array_addr(dimListNode);
+      fprintf(write_file, "%slw %s, %s\n", float_or_not, regName[rs], regName[addr_reg]);
+
+      /*if ( dimListNode->nodeType == CONST_VALUE_NODE ) {
         if ( id_nest_level(exprNode) == 0 ) { // global arrays
           int rt = REG_S1; 
           fprintf(write_file, "lui %s, %%hi(_g_%s)\n", regName[rt], id_name(exprNode));
@@ -551,7 +609,7 @@ int gen_expr ( AST_NODE *exprNode ) {
       } else {
         fprintf(stderr, "nani! the arrayNode->child is not CONST_VALUE_NODE\n");
         exit(1);
-      }
+      }*/
     } else if ( id_kind(exprNode) == NORMAL_ID ) {
       if ( (rs=in_reg(exprNode)) < 0 ) {
         fprintf(stderr, "[gen_expr] varID: %s not in reg\n", id_name(exprNode));
