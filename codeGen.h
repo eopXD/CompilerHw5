@@ -22,6 +22,7 @@
 #define id_nest_level(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry->nestingLevel
 #define id_name(idNode) (idNode)->semantic_value.identifierSemanticValue.identifierName
 #define id_offset(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry->offset
+#define id_type_desc(idNode) (idNode)->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor
 
 /* expression operation */
 #define bin_op(node) (node)->semantic_value.exprSemanticValue.op.binaryOp
