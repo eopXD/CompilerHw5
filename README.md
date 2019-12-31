@@ -1,6 +1,6 @@
-# C-- Compiler
+# C Compiler
 
-Code generation for C--, with target machine is RISC-V architecture (RV64I).
+Code generation for simplified C, with target machine is RISC-V architecture (RV64I).
 
 - b04705001 陳約廷 (eopXD)
 - b05902045 宋哲寬 (snoopysfriend)
